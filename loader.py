@@ -14,6 +14,11 @@
 import pandas as pd
 import numpy as np
 from glob import glob
+from tqdm import tqdm
+import itertools
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
 
 #################################################################################
 #   Function-Class Declaration
@@ -30,10 +35,10 @@ class Loader(object):
     def __init__(self,
                  train_path = "data/preq_2018/",
                  test_path = "data/post_2018/",
-                 co_occ_min_max = [2,6],
-                 mix_same_crisis = True,
-                 dataset_size = 100000,
+                 co_occ_range = [2,6],
                  simulate = True,
+                 tokenizer = CountVectorizer().build_tokenizer(),
+                 val_split = 0.2,
                  ):
         """Instantiate id artifacts """
         self.train_path = train_path
@@ -41,6 +46,11 @@ class Loader(object):
 
         self.train_dirs = glob(self.train_path + "*/*.tsv" )
         self.test_dirs = glob(self.test_path + "*/*.tsv" )
+
+        self.tokenizer = tokenizer
+        self.val_split = val_split
+
+        self.co_occ_range = co_occ_range
 
     def __load_file(self, flist):
         """Load files into pandas df with
@@ -59,34 +69,113 @@ class Loader(object):
             dfs.append(df)
         return pd.concat(dfs)
 
-    def load_files(self):
+    def __make_crisis_dict(self, data, crises):
+        """Make train data dictionary by
+        crisis
+
+        :returns: data dictionary
+
+        """
+        data_dict = {}
+        for c in crises:
+            data_dict[c] = data[data['crisis'] == c].reset_index(drop=True)
+
+        return data_dict
+
+    def load_files(self, random_seed = 42):
         """Load files from directory
 
         :returns: Load file data from directory
 
         """
-        self.train_corpus = self.__load_file(self.train_dirs)
+        self.train_corpus, self.dev_corpus = train_test_split(self.__load_file(self.train_dirs),
+                                                              test_size = self.val_split,
+                                                              random_state = random_seed)
         self.test_corpus = self.__load_file(self.test_dirs)
 
-    def preprocess_files(self):
-        """Preprocess files with proper tokenization
-        and-or embeddings.
+        self.le = LabelEncoder().fit(self.train_corpus['class_label'].drop_duplicates())
+        self.train_crises = self.train_corpus['crisis'].drop_duplicates().to_numpy()
+        self.dev_crises = self.train_corpus['crisis'].drop_duplicates().to_numpy()
+        self.test_crises = self.test_corpus['crisis'].drop_duplicates().to_numpy()
 
+        #Make dictionary of crises
+        self.train_dict = self.__make_crisis_dict(self.train_corpus, self.train_crises)
 
-        :returns: Preprocess corpus for modeling
+    def tokenize(self, sentence):
+        """Tokenize input based on provided tokenizer
+        For now, just use the CountVect tokenizer
+        until we get something more sophisticated
+
+        :returns: Lists of tokens for embedding and encoding
 
         """
-        pass
+        return self.tokenizer(sentence)
 
-    def synthesize_data(self):
+    def next_batch(self, batch_size = 64):
+        """Create next batch of data for synthesized training
+
+        :batch_size: TODO
+        :returns: TODO
+
+        """
+
+        # Get crisis tokens and labels
+        crisis_tokens, crisis_labels = self.__synthesize_data(batch_size)
+
+        #Make true labels
+        final_tokens_labels = [[],[]]
+        for i,l in enumerate(crisis_labels):
+            s = crisis_tokens[i]
+            new_label = [np.ones(len(sentence))*self.le.transform([label])[0]
+                         for sentence,label in zip(s, l)]
+
+            chained_tokens = list(itertools.chain(*s))
+            chained_labels = list(itertools.chain(*new_label))
+
+            assert len(chained_tokens) == len(chained_labels),\
+                "ERROR: train-label size mismatch in data augmentation engine"
+
+            final_tokens_labels[0].append(chained_tokens)
+            final_tokens_labels[1].append(chained_labels)
+
+        return final_tokens_labels
+
+    def __synthesize_data(self,batch_size):
         """ Synthesize multilabel text dataset
         and labels
 
         :returns: Synthesized train and test dataset
 
         """
-        pass
 
+        # Get varying sample sizes
+        sample_sizes = np.random.randint(self.co_occ_range[0],
+                                         self.co_occ_range[1],
+                                         size = batch_size,
+                                         dtype = int)
+
+        #Sample only from specific crises
+        sample_crises = np.random.choice(self.train_crises,size = batch_size)
+
+        #Get specific random samples from every crisis
+        crisis_inds = [
+            np.random.randint(0, self.train_dict[c].shape[0],size = s)
+            for c,s in zip(sample_crises, sample_sizes)]
+
+        # Get a set of tuples joining sentences and labels together.
+        # These are unexpanded and are sent compressed to next_batch
+        # for expansion
+        crisis_tokens_labels = list(zip(*
+            [([self.tokenizer(sentence) for sentence in self.train_dict[c].loc[s,"tweet_text"].tolist()],
+             self.train_dict[c].loc[s,"class_label"].tolist()) for c,s in
+            zip(sample_crises, crisis_inds)
+            ]))
+
+        # Separate crisis tokens and labels
+        crisis_tokens = crisis_tokens_labels[0]
+        crisis_labels = crisis_tokens_labels[1]
+
+        return crisis_tokens, crisis_labels
 
 #######################################################################
 # Testing
@@ -96,6 +185,11 @@ if __name__ == "__main__":
     l = Loader()
     # print(l.train_dirs )
     l.load_files()
-    print(l.test_corpus.head())
-    print(l.train_corpus.head())
-
+    # print(l.train_corpus.columns)
+    # print(l.test_corpus.shape)
+    # print(l.train_corpus.shape)
+    # print(l.dev_corpus.shape)
+    # print(l.dev_crises)
+    # print(l.train_dict.keys())
+    for i in tqdm(range(1000)):
+        l.next_batch()
