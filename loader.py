@@ -40,7 +40,8 @@ class Loader(object):
                  tokenizer = CountVectorizer().build_tokenizer(),
                  val_split = 0.2,
                  ):
-        """Instantiate id artifacts """
+
+        """Get data source locations and read in files"""
         self.train_path = train_path
         self.test_path = test_path
 
@@ -88,18 +89,34 @@ class Loader(object):
         :returns: Load file data from directory
 
         """
+
+        # Load train data from specific directories
+        # Split train data into train and dev sets
         self.train_corpus, self.dev_corpus = train_test_split(self.__load_file(self.train_dirs),
                                                               test_size = self.val_split,
                                                               random_state = random_seed)
+
+        #Load test data
         self.test_corpus = self.__load_file(self.test_dirs)
 
+        #Make label encoder
         self.le = LabelEncoder().fit(self.train_corpus['class_label'].drop_duplicates())
+
+        #Get list of crises in each set
         self.train_crises = self.train_corpus['crisis'].drop_duplicates().to_numpy()
         self.dev_crises = self.train_corpus['crisis'].drop_duplicates().to_numpy()
+
+        # Make sure that the same crises are present in train and dev data
+        assert np.equal(self.train_crises.sort(), self.dev_crises.sort()).all(),\
+            "Error, train and dev crisis mismatched - check information"
+
+        # Get test crises
         self.test_crises = self.test_corpus['crisis'].drop_duplicates().to_numpy()
 
         #Make dictionary of crises
         self.train_dict = self.__make_crisis_dict(self.train_corpus, self.train_crises)
+        self.dev_dict = self.__make_crisis_dict(self.dev_dict, self.dev_crises)
+        self.test_dict = self.__make_crisis_dict(self.test_dict, self.test_crises)
 
     def tokenize(self, sentence):
         """Tokenize input based on provided tokenizer
@@ -114,8 +131,8 @@ class Loader(object):
     def next_batch(self, batch_size = 64):
         """Create next batch of data for synthesized training
 
-        :batch_size: TODO
-        :returns: TODO
+        :batch_size: size of training batch
+        :returns: batch of data-augmented multi-label samples
 
         """
 
@@ -129,12 +146,15 @@ class Loader(object):
             new_label = [np.ones(len(sentence))*self.le.transform([label])[0]
                          for sentence,label in zip(s, l)]
 
+            #Chain together tokens and broadcasted labels
             chained_tokens = list(itertools.chain(*s))
             chained_labels = list(itertools.chain(*new_label))
 
+            #Ensure tokens and labels are the same shape
             assert len(chained_tokens) == len(chained_labels),\
                 "ERROR: train-label size mismatch in data augmentation engine"
 
+            #Add sample to batch
             final_tokens_labels[0].append(chained_tokens)
             final_tokens_labels[1].append(chained_labels)
 
@@ -166,7 +186,8 @@ class Loader(object):
         # These are unexpanded and are sent compressed to next_batch
         # for expansion
         crisis_tokens_labels = list(zip(*
-            [([self.tokenizer(sentence) for sentence in self.train_dict[c].loc[s,"tweet_text"].tolist()],
+            [([self.tokenizer(sentence) for sentence
+               in self.train_dict[c].loc[s,"tweet_text"].tolist()],
              self.train_dict[c].loc[s,"class_label"].tolist()) for c,s in
             zip(sample_crises, crisis_inds)
             ]))
@@ -192,4 +213,4 @@ if __name__ == "__main__":
     # print(l.dev_crises)
     # print(l.train_dict.keys())
     for i in tqdm(range(1000)):
-        l.next_batch()
+        l.next_batch(batch_size = 64)
