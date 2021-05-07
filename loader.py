@@ -38,9 +38,9 @@ class Loader(object):
                  train_path = "data/preq_2018/",
                  test_path = "data/post_2018/",
                  co_occ_range = [2,6],
-                 simulate = True,
                  tokenizer = CountVectorizer().build_tokenizer(),
                  val_split = 0.2,
+                 random_seed =42,
                  ):
 
         """Get data source locations and read in files"""
@@ -49,9 +49,12 @@ class Loader(object):
 
         self.train_dirs = glob(self.train_path + "*/*.tsv" )
         self.test_dirs = glob(self.test_path + "*/*.tsv" )
+        self.unilabel_df = None
 
         self.tokenizer = tokenizer
         self.val_split = val_split
+
+        self.random_seed = random_seed
 
         self.co_occ_range = co_occ_range
 
@@ -84,6 +87,11 @@ class Loader(object):
             data_dict[c] = data[data['crisis'] == c].reset_index(drop=True)
 
         return data_dict
+
+    def preprocess_unilabel(self, sample, label):
+        sentence = self.tokenizer(sample)
+        labels = np.ones(len(sentence))*self.le.transform([label])
+        return sentence, labels
 
     def __synthesize_data(self,batch_size):
         """ Synthesize multilabel text dataset
@@ -123,7 +131,7 @@ class Loader(object):
 
         return crisis_tokens, crisis_labels
 
-    def load_files(self, random_seed = 42):
+    def load_files(self):
         """Load files from directory
 
         :returns: Load file data from directory
@@ -134,7 +142,7 @@ class Loader(object):
         # Split train data into train and dev sets
         self.train_corpus, self.dev_corpus = train_test_split(self.__load_file(self.train_dirs),
                                                               test_size = self.val_split,
-                                                              random_state = random_seed)
+                                                              random_state = self.random_seed)
 
         #Load test data
         self.test_corpus = self.__load_file(self.test_dirs)
@@ -168,7 +176,7 @@ class Loader(object):
         """
         return self.tokenizer(sentence)
 
-    def next_batch(self, batch_size = 64):
+    def next_batch_multilabel(self, batch_size = 64):
         """Create next batch of data for synthesized training
 
         :batch_size: size of training batch
@@ -206,7 +214,7 @@ class Loader(object):
 
         return final_tokens_labels
 
-    def next_epoch(self, num_batches = 100,
+    def next_epoch_multilabel(self, num_batches = 100,
                    batch_size = 64):
         """Create a set of new data_aug batches for
         experimentation and training
@@ -216,13 +224,60 @@ class Loader(object):
 
         """
 
-        print("Creating {} batches of {} samples for next epoch"
+        print("Creating {} multilabel batches of {} samples for next epoch"
               .format(num_batches,batch_size))
         epoch = []
         for i in tqdm(range(num_batches)):
-            epoch.append(l.next_batch(batch_size = batch_size))
+            epoch.append(l.next_batch_multilabel(batch_size = batch_size))
 
         return epoch
+
+    def next_epoch_unilabel(self, batch_size = 64):
+        """Get next epoch of data for unilabel dataset
+
+        :returns: list of batches in certain size, plus
+                  data is shuffled
+        """
+
+        if not self.unilabel_df:
+            train_samples = self.train_corpus['tweet_text']\
+                    .apply(lambda x: self.tokenizer(x)).reset_index(drop = True)
+
+            train_labels_sentence = pd.DataFrame(self.le\
+                                                .transform(self.train_corpus['class_label']),
+                                                columns = ['label'])
+
+            train_labels_sentence['sample_len'] = train_samples\
+                .apply(lambda s: len(s)).reset_index(drop=True)
+
+            token_labels = train_labels_sentence\
+                    .apply(lambda row: (np.ones(row['sample_len'])*row['label']).astype(int), axis = 1)
+
+            # print(train_samples)
+            # print(token_labels)
+            self.unilabel_df = pd.concat([train_samples, token_labels], axis =1)
+
+        shuffled_df = list(zip(*self.unilabel_df.sample(frac = 1).values.tolist()))
+
+        batches = []
+        print("Preparing unilabel batches of {} samples for next epoch".format(batch_size))
+        for i in tqdm(range(0,len(shuffled_df[0]), batch_size)):
+            batches.append([shuffled_df[0][i:i+batch_size],
+                            shuffled_df[1][i:i+batch_size]])
+
+        return batches
+
+    def next_epoch(self,num_batches =100,
+                   batch_size = 64,
+                   simulate = True):
+        if simulate:
+            return self.next_epoch_multilabel(num_batches,
+                                              batch_size)
+        else:
+            return self.next_epoch_unilabel(batch_size)
+
+
+
 
 
 #######################################################################
@@ -250,7 +305,10 @@ if __name__ == "__main__":
     #sys.exit(1)
 
     # Test of creating an epoch
-    l.next_epoch()
+    # l.next_epoch()
+
+    # print(l.next_epoch_unilabel())
+
 
 # TODO: NOTES FOR EDGAR
 edgar_notes ='''
