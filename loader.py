@@ -69,7 +69,8 @@ class Loader(object):
         """
         dfs = []
         for f in flist:
-            df = pd.read_csv(f, sep = "\t")
+            df = pd.read_csv(f, sep = "\t", encoding='utf8')
+            df['tweet_text'] = df['tweet_text'].apply(lambda x: x.encode('utf8').decode('latin-1', 'ignore'))
             tag = "_".join(f.split("/")[-1].split("_")[:-1])
             df['crisis'] = tag
             dfs.append(df)
@@ -228,7 +229,7 @@ class Loader(object):
               .format(num_batches,batch_size))
         epoch = []
         for i in tqdm(range(num_batches)):
-            epoch.append(l.next_batch_multilabel(batch_size = batch_size))
+            epoch.append(self.next_batch_multilabel(batch_size = batch_size))
 
         return epoch
 
@@ -239,7 +240,7 @@ class Loader(object):
                   data is shuffled
         """
 
-        if not self.unilabel_df:
+        if self.unilabel_df is None:
             train_samples = self.train_corpus['tweet_text']\
                     .apply(lambda x: self.tokenizer(x)).reset_index(drop = True)
 
