@@ -1,4 +1,4 @@
-from transformers import DistilBertTokenizerFast, DistilBertForSequenceClassification, Trainer, TrainingArguments
+from transformers import DistilBertTokenizerFast, DistilBertForTokenClassification, Trainer, TrainingArguments
 from transformers import AdamW
 from loader import Loader
 import torch
@@ -17,14 +17,14 @@ def train_model(tokenizer, model, n_epochs=1):
 
     for epoch_i in tqdm(list(range(n_epochs))):
         print(epoch_i)
-        for epoch in l.next_epoch(batch_size=32, simulate = False):
+        for epoch in l.next_epoch(batch_size=16, simulate = True):
             batch = epoch[0]
             labels = epoch[1]
             optim.zero_grad()
-            tokenized = tokenizer([' '.join(s) for s in batch], padding=True)
-            labels_tensor = torch.tensor([l[0] for l in labels]).to(device)
+            tokenized = tokenizer(list(batch), padding=True, is_split_into_words=True, return_length=True)
             input_ids = torch.tensor(tokenized["input_ids"]).to(device)
             attention_mask = torch.tensor(tokenized["attention_mask"]).to(device)
+            labels_tensor = torch.tensor([list(label) + [-100]*(length - len(label)) for label, length in zip(labels, tokenized["length"])]).to(device)
             outputs = model(input_ids, attention_mask=attention_mask, labels=labels_tensor)
             loss = outputs[0]
             loss.backward()
@@ -47,15 +47,16 @@ def benchmark(tokenizer, model):
 
     n_res = 0
     sum_res = 0
-    for batch, labels in l_train.next_epoch(batch_size=32, simulate=False, dataset="train"):
-        tokenized = tokenizer([' '.join(s) for s in batch], padding=True)
-        labels_tensor = torch.tensor([l[0] for l in labels]).to(device)
+    for batch, labels in l_train.next_epoch(batch_size=16, simulate=True, dataset="train"):
+        tokenized = tokenizer(list(batch), padding=True, is_split_into_words=True, return_length=True)
         input_ids = torch.tensor(tokenized["input_ids"]).to(device)
         attention_mask = torch.tensor(tokenized["attention_mask"]).to(device)
+        labels_tensor = torch.tensor([list(label) + [-100]*(length - len(label)) for label, length in zip(labels, tokenized["length"])]).to(device)
         outputs = model(input_ids, attention_mask=attention_mask)
-        logits = outputs.logits.max(axis=1)[1]
-        n_res += logits.shape[0]
-        sum_res += (logits == labels_tensor).float().sum()
+        logits = outputs.logits.max(axis=-1)[1]
+        mask = labels_tensor != -100
+        n_res += mask.float().sum()
+        sum_res += ((logits == labels_tensor) & mask).float().sum()
 
     train_acc = sum_res/n_res
 
@@ -67,15 +68,16 @@ def benchmark(tokenizer, model):
 
     n_res = 0
     sum_res = 0
-    for batch, labels in l_dev.next_epoch(batch_size=32, simulate=False, dataset="dev"):
-        tokenized = tokenizer([' '.join(s) for s in batch], padding=True)
-        labels_tensor = torch.tensor([l[0] for l in labels]).to(device)
+    for batch, labels in l_dev.next_epoch(batch_size=16, simulate=True, dataset="dev"):
+        tokenized = tokenizer(list(batch), padding=True, is_split_into_words=True, return_length=True)
         input_ids = torch.tensor(tokenized["input_ids"]).to(device)
         attention_mask = torch.tensor(tokenized["attention_mask"]).to(device)
+        labels_tensor = torch.tensor([list(label) + [-100]*(length - len(label)) for label, length in zip(labels, tokenized["length"])]).to(device)
         outputs = model(input_ids, attention_mask=attention_mask)
-        logits = outputs.logits.max(axis=1)[1]
-        n_res += logits.shape[0]
-        sum_res += (logits == labels_tensor).float().sum()
+        logits = outputs.logits.max(axis=-1)[1]
+        mask = labels_tensor != -100
+        n_res += mask.float().sum()
+        sum_res += ((logits == labels_tensor) & mask).float().sum()
 
     dev_acc = sum_res/n_res
 
@@ -83,7 +85,7 @@ def benchmark(tokenizer, model):
     return train_acc, dev_acc
 
 tokenizer = DistilBertTokenizerFast.from_pretrained('distilbert-base-uncased')
-model = DistilBertForSequenceClassification.from_pretrained("distilbert-base-uncased", num_labels=10)
+model = DistilBertForTokenClassification.from_pretrained("distilbert-base-uncased", num_labels=10)
 
 model = train_model(tokenizer, model)
 train_acc, dev_acc = benchmark(tokenizer, model)
