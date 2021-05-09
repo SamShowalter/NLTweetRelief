@@ -94,7 +94,7 @@ class Loader(object):
         labels = np.ones(len(sentence))*self.le.transform([label])
         return sentence, labels
 
-    def __synthesize_data(self,batch_size):
+    def __synthesize_data(self,batch_size, dataset="train"):
         """ Synthesize multilabel text dataset
         and labels
 
@@ -109,11 +109,19 @@ class Loader(object):
                                          dtype = int)
 
         #Sample only from specific crises
+
+        _dict = self.train_dict
         sample_crises = np.random.choice(self.train_crises,size = batch_size)
+        if dataset == "dev":
+            _dict = self.dev_dict
+            sample_crises = np.random.choice(self.dev_crises,size = batch_size)
+        if dataset == "test":
+            _dict = self.test_dict
+            sample_crises = np.random.choice(self.test_crises,size = batch_size)
 
         #Get specific random samples from every crisis
         crisis_inds = [
-            np.random.randint(0, self.train_dict[c].shape[0],size = s)
+            np.random.randint(0, _dict[c].shape[0],size = s)
             for c,s in zip(sample_crises, sample_sizes)]
 
         # Get a set of tuples joining sentences and labels together.
@@ -121,8 +129,8 @@ class Loader(object):
         # for expansion
         crisis_tokens_labels = list(zip(*
             [([self.tokenizer(sentence) for sentence
-               in self.train_dict[c].loc[s,"tweet_text"]],
-             self.train_dict[c].loc[s,"class_label"]) for c,s in
+               in _dict[c].loc[s,"tweet_text"]],
+             _dict[c].loc[s,"class_label"]) for c,s in
             zip(sample_crises, crisis_inds)
             ]))
 
@@ -177,7 +185,7 @@ class Loader(object):
         """
         return self.tokenizer(sentence)
 
-    def next_batch_multilabel(self, batch_size = 64):
+    def next_batch_multilabel(self, batch_size = 64, dataset="train"):
         """Create next batch of data for synthesized training
 
         :batch_size: size of training batch
@@ -192,7 +200,7 @@ class Loader(object):
         """
 
         # Get crisis tokens and labels
-        crisis_tokens, crisis_labels = self.__synthesize_data(batch_size)
+        crisis_tokens, crisis_labels = self.__synthesize_data(batch_size, dataset=dataset)
 
         #Make true labels
         final_tokens_labels = [[],[]]
@@ -216,7 +224,8 @@ class Loader(object):
         return final_tokens_labels
 
     def next_epoch_multilabel(self, num_batches = 100,
-                   batch_size = 64):
+                   batch_size = 64,
+                   dataset="train"):
         """Create a set of new data_aug batches for
         experimentation and training
 
@@ -229,11 +238,12 @@ class Loader(object):
               .format(num_batches,batch_size))
         epoch = []
         for i in tqdm(range(num_batches)):
-            epoch.append(self.next_batch_multilabel(batch_size = batch_size))
+            epoch.append(self.next_batch_multilabel(batch_size = batch_size,
+                        dataset=dataset))
 
         return epoch
 
-    def next_epoch_unilabel(self, batch_size = 64):
+    def next_epoch_unilabel(self, batch_size = 64,dataset="train"):
         """Get next epoch of data for unilabel dataset
 
         :returns: list of batches in certain size, plus
@@ -241,11 +251,16 @@ class Loader(object):
         """
 
         if self.unilabel_df is None:
-            train_samples = self.train_corpus['tweet_text']\
+            corpus = self.train_corpus
+            if dataset == "dev":
+                corpus = self.dev_corpus
+            if dataset == "test":
+                corpus = self.test_corpus
+            train_samples = corpus['tweet_text']\
                     .apply(lambda x: self.tokenizer(x)).reset_index(drop = True)
 
             train_labels_sentence = pd.DataFrame(self.le\
-                                                .transform(self.train_corpus['class_label']),
+                                                .transform(corpus['class_label']),
                                                 columns = ['label'])
 
             train_labels_sentence['sample_len'] = train_samples\
@@ -270,12 +285,14 @@ class Loader(object):
 
     def next_epoch(self,num_batches =100,
                    batch_size = 64,
-                   simulate = True):
+                   simulate = True,
+                   dataset = "train"):
         if simulate:
             return self.next_epoch_multilabel(num_batches,
-                                              batch_size)
+                                              batch_size,
+                                              dataset=dataset)
         else:
-            return self.next_epoch_unilabel(batch_size)
+            return self.next_epoch_unilabel(batch_size,dataset=dataset)
 
 
 
