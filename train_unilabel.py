@@ -20,7 +20,7 @@ def train_model(tokenizer, model, n_epochs=1):
 
         n_res = 0
         sum_res = 0
-        for epoch in l.next_epoch(batch_size=32, simulate = False):
+        for epoch in l.next_epoch(batch_size=32, simulate = False, dataset = 'train'):
             batch = epoch[0]
             labels = epoch[1]
             optim.zero_grad()
@@ -47,19 +47,19 @@ def train_model(tokenizer, model, n_epochs=1):
         print("train_acc", train_acc)
 
     model.eval()
-    return model, train_acc
+    return model, train_acc, l
 
 
-def benchmark(tokenizer, model):
+def benchmark(tokenizer, model, loader):
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
-    l_train = Loader()
+    # loader = Loader()
 
-    l_train.load_files()
+    # loader.load_files()
 
     n_res = 0
     sum_res = 0
-    for batch, labels in l_train.next_epoch(batch_size=32, simulate=False, dataset="train"):
+    for batch, labels in loader.next_epoch(batch_size=32, simulate=False, dataset="train"):
         tokenized = tokenizer([' '.join(s) for s in batch], padding=True)
         labels_tensor = torch.tensor([l[0] for l in labels]).to(device)
         input_ids = torch.tensor(tokenized["input_ids"]).to(device)
@@ -73,14 +73,14 @@ def benchmark(tokenizer, model):
 
     print("train_acc", train_acc)
 
-    l_dev = Loader()
+    # l_dev = Loader()
 
-    l_dev.load_files()
-    print(l_dev.unilabel_df)
+    # l_dev.load_files()
+    # print(l_dev.unilabel_df)
 
     n_res = 0
     sum_res = 0
-    for batch, labels in l_dev.next_epoch(batch_size=32, simulate=False, dataset="dev"):
+    for batch, labels in loader.next_epoch(batch_size=32, simulate=False, dataset="dev"):
         tokenized = tokenizer([' '.join(s) for s in batch], padding=True)
         labels_tensor = torch.tensor([l[0] for l in labels]).to(device)
         input_ids = torch.tensor(tokenized["input_ids"]).to(device)
@@ -98,5 +98,5 @@ def benchmark(tokenizer, model):
 tokenizer = DistilBertTokenizerFast.from_pretrained('distilbert-base-uncased')
 model = DistilBertForSequenceClassification.from_pretrained("distilbert-base-uncased", num_labels=10)
 
-model, train_acc = train_model(tokenizer, model)
-train_acc, dev_acc = benchmark(tokenizer, model)
+model, train_acc, loader = train_model(tokenizer, model)
+train_acc, dev_acc = benchmark(tokenizer, model, loader)
