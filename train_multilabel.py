@@ -4,7 +4,7 @@ from loader import Loader
 import torch
 from tqdm import tqdm
 
-def train_model(tokenizer, model, n_epochs=1):
+def train_model(tokenizer, model, n_epochs=10):
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     model.to(device)
     model.train()
@@ -17,6 +17,8 @@ def train_model(tokenizer, model, n_epochs=1):
 
     for epoch_i in tqdm(list(range(n_epochs))):
         print(epoch_i)
+        n_res = 0
+        sum_res = 0
         for epoch in l.next_epoch(batch_size=16, simulate = True):
             batch = epoch[0]
             labels = epoch[1]
@@ -26,6 +28,10 @@ def train_model(tokenizer, model, n_epochs=1):
             attention_mask = torch.tensor(tokenized["attention_mask"]).to(device)
             labels_tensor = torch.tensor([list(label) + [-100]*(length - len(label)) for label, length in zip(labels, tokenized["length"])]).to(device)
             outputs = model(input_ids, attention_mask=attention_mask, labels=labels_tensor)
+            logits = outputs.logits.detach().max(axis=-1)[1]
+            mask = labels_tensor != -100
+            n_res += mask.float().sum()
+            sum_res += ((logits == labels_tensor) & mask).float().sum()
             loss = outputs[0]
             loss.backward()
             optim.step()
@@ -34,8 +40,11 @@ def train_model(tokenizer, model, n_epochs=1):
             del input_ids
             del labels_tensor
 
+        train_acc = sum_res/n_res
+        print("train_acc", train_acc)
+
     model.eval()
-    return model
+    return model, train_acc
 
 
 def benchmark(tokenizer, model):
@@ -87,5 +96,8 @@ def benchmark(tokenizer, model):
 tokenizer = DistilBertTokenizerFast.from_pretrained('distilbert-base-uncased')
 model = DistilBertForTokenClassification.from_pretrained("distilbert-base-uncased", num_labels=10)
 
-model = train_model(tokenizer, model)
-train_acc, dev_acc = benchmark(tokenizer, model)
+model, train_acc = train_model(tokenizer, model)
+_, dev_acc = benchmark(tokenizer, model)
+
+import numpy as np
+np.savetxt('multilabel.csv', ([train_acc.item()], [dev_acc.item()]), delimiter=',')

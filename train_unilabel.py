@@ -17,6 +17,9 @@ def train_model(tokenizer, model, n_epochs=1):
 
     for epoch_i in tqdm(list(range(n_epochs))):
         print(epoch_i)
+
+        n_res = 0
+        sum_res = 0
         for epoch in l.next_epoch(batch_size=32, simulate = False):
             batch = epoch[0]
             labels = epoch[1]
@@ -27,6 +30,11 @@ def train_model(tokenizer, model, n_epochs=1):
             attention_mask = torch.tensor(tokenized["attention_mask"]).to(device)
             outputs = model(input_ids, attention_mask=attention_mask, labels=labels_tensor)
             loss = outputs[0]
+
+            logits = outputs.logits.detach().max(axis=1)[1]
+            n_res += logits.shape[0]
+            sum_res += (logits == labels_tensor).float().sum()
+
             loss.backward()
             optim.step()
             del loss
@@ -34,8 +42,12 @@ def train_model(tokenizer, model, n_epochs=1):
             del input_ids
             del labels_tensor
 
+        train_acc = sum_res/n_res
+
+        print("train_acc", train_acc)
+
     model.eval()
-    return model
+    return model, train_acc
 
 
 def benchmark(tokenizer, model):
@@ -64,6 +76,7 @@ def benchmark(tokenizer, model):
     l_dev = Loader()
 
     l_dev.load_files()
+    print(l_dev.unilabel_df)
 
     n_res = 0
     sum_res = 0
@@ -85,5 +98,5 @@ def benchmark(tokenizer, model):
 tokenizer = DistilBertTokenizerFast.from_pretrained('distilbert-base-uncased')
 model = DistilBertForSequenceClassification.from_pretrained("distilbert-base-uncased", num_labels=10)
 
-model = train_model(tokenizer, model)
+model, train_acc = train_model(tokenizer, model)
 train_acc, dev_acc = benchmark(tokenizer, model)
