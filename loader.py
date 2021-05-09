@@ -90,7 +90,7 @@ class Loader(object):
         return data_dict
 
     def preprocess_unilabel(self, sample, label):
-        sentence = self.tokenizer(sample)
+        sentence = self.tokenize(sample)
         labels = np.ones(len(sentence))*self.le.transform([label])
         return sentence, labels
 
@@ -109,7 +109,6 @@ class Loader(object):
                                          dtype = int)
 
         #Sample only from specific crises
-
         _dict = self.train_dict
         sample_crises = np.random.choice(self.train_crises,size = batch_size)
         if dataset == "dev":
@@ -128,7 +127,7 @@ class Loader(object):
         # These are unexpanded and are sent compressed to next_batch
         # for expansion
         crisis_tokens_labels = list(zip(*
-            [([self.tokenizer(sentence) for sentence
+            [([self.tokenize(sentence) for sentence
                in _dict[c].loc[s,"tweet_text"]],
              _dict[c].loc[s,"class_label"]) for c,s in
             zip(sample_crises, crisis_inds)
@@ -161,7 +160,7 @@ class Loader(object):
 
         #Get list of crises in each set
         self.train_crises = self.train_corpus['crisis'].drop_duplicates().to_numpy()
-        self.dev_crises = self.train_corpus['crisis'].drop_duplicates().to_numpy()
+        self.dev_crises = self.dev_corpus['crisis'].drop_duplicates().to_numpy()
 
         # Make sure that the same crises are present in train and dev data
         assert np.equal(self.train_crises.sort(), self.dev_crises.sort()).all(),\
@@ -234,8 +233,8 @@ class Loader(object):
 
         """
 
-        print("Creating {} multilabel batches of {} samples for next epoch"
-              .format(num_batches,batch_size))
+        print("Creating {} multilabel batches of {} samples from {} set for next epoch"
+              .format(num_batches,batch_size, dataset))
         epoch = []
         for i in tqdm(range(num_batches)):
             epoch.append(self.next_batch_multilabel(batch_size = batch_size,
@@ -257,7 +256,7 @@ class Loader(object):
             if dataset == "test":
                 corpus = self.test_corpus
             train_samples = corpus['tweet_text']\
-                    .apply(lambda x: self.tokenizer(x)).reset_index(drop = True)
+                    .apply(lambda x: self.tokenize(x)).reset_index(drop = True)
 
             train_labels_sentence = pd.DataFrame(self.le\
                                                 .transform(corpus['class_label']),
@@ -276,7 +275,7 @@ class Loader(object):
         shuffled_df = list(zip(*self.unilabel_df.sample(frac = 1).values.tolist()))
 
         batches = []
-        print("Preparing unilabel batches of {} samples for next epoch".format(batch_size))
+        print("Preparing unilabel batches of {} samples taken from {} set for next epoch".format(batch_size, dataset))
         for i in tqdm(range(0,len(shuffled_df[0]), batch_size)):
             batches.append([shuffled_df[0][i:i+batch_size],
                             shuffled_df[1][i:i+batch_size]])
@@ -307,9 +306,14 @@ if __name__ == "__main__":
     l.load_files()
 
     # print(l.train_corpus.columns)
-    # print(l.test_corpus.shape)
-    # print(l.train_corpus.shape)
-    # print(l.dev_corpus.shape)
+    print(l.test_corpus.shape)
+    print(l.train_corpus.shape)
+    print(l.dev_corpus.shape)
+
+#     for k in l.train_dict.keys():
+#         print("Train then dev shapes")
+#         print(l.train_dict[k].shape)
+#         print(l.dev_dict[k].shape)
     # print(l.dev_crises)
     # print(l.train_dict.keys())
 
@@ -325,8 +329,11 @@ if __name__ == "__main__":
     # Test of creating an epoch
     # l.next_epoch()
 
-    # print(l.next_epoch_unilabel())
+    # d = l.next_epoch_unilabel(dataset = "test")
+    # print(len(d))
 
+    d = l.next_epoch_multilabel(dataset = "test")
+    print(len(d))
 
 # TODO: NOTES FOR EDGAR
 edgar_notes ='''
