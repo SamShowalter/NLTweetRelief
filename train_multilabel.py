@@ -57,7 +57,7 @@ def benchmark(tokenizer, model, loader):
 
     n_res = 0
     sum_res = 0
-    for batch, labels in loader.next_epoch(batch_size=16, simulate=True, dataset="train"):
+    for batch, labels,crises in loader.next_epoch(batch_size=16, simulate=True, dataset="train"):
         tokenized = tokenizer(list(batch), padding=True, is_split_into_words=True, return_length=True)
         input_ids = torch.tensor(tokenized["input_ids"]).to(device)
         attention_mask = torch.tensor(tokenized["attention_mask"]).to(device)
@@ -78,7 +78,7 @@ def benchmark(tokenizer, model, loader):
 
     n_res = 0
     sum_res = 0
-    for batch, labels in loader.next_epoch(batch_size=16, simulate=True, dataset="dev"):
+    for batch, labels,crises in loader.next_epoch(batch_size=16, simulate=True, dataset="dev"):
         tokenized = tokenizer(list(batch), padding=True, is_split_into_words=True, return_length=True)
         input_ids = torch.tensor(tokenized["input_ids"]).to(device)
         attention_mask = torch.tensor(tokenized["attention_mask"]).to(device)

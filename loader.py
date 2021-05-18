@@ -118,6 +118,7 @@ class Loader(object):
             _dict = self.test_dict
             sample_crises = np.random.choice(self.test_crises,size = batch_size)
 
+
         #Get specific random samples from every crisis
         crisis_inds = [
             np.random.randint(0, _dict[c].shape[0],size = s)
@@ -137,7 +138,7 @@ class Loader(object):
         crisis_tokens = crisis_tokens_labels[0]
         crisis_labels = crisis_tokens_labels[1]
 
-        return crisis_tokens, crisis_labels
+        return crisis_tokens, crisis_labels, sample_crises
 
     def load_files(self):
         """Load files from directory
@@ -199,7 +200,7 @@ class Loader(object):
         """
 
         # Get crisis tokens and labels
-        crisis_tokens, crisis_labels = self.__synthesize_data(batch_size, dataset=dataset)
+        crisis_tokens, crisis_labels, crises = self.__synthesize_data(batch_size, dataset=dataset)
 
         #Make true labels
         final_tokens_labels = [[],[]]
@@ -220,7 +221,7 @@ class Loader(object):
             final_tokens_labels[0].append(chained_tokens)
             final_tokens_labels[1].append(chained_labels)
 
-        return final_tokens_labels
+        return final_tokens_labels, crises
 
     def next_epoch_multilabel(self, num_batches = 100,
                    batch_size = 64,
@@ -304,6 +305,7 @@ class Loader(object):
 if __name__ == "__main__":
     l = Loader()
     l.load_files()
+    print(l.train_crises)
 
     # print(l.train_corpus.columns)
     print(l.test_corpus.shape)
@@ -335,11 +337,3 @@ if __name__ == "__main__":
     d = l.next_epoch_multilabel(dataset = "test")
     print(len(d))
 
-# TODO: NOTES FOR EDGAR
-edgar_notes ='''
-To train with this for unilabel -> tokenize single tweets and provide label (broadcast)
-for multilabel ->
-- Per epoch, generate some number of batches (100)
-- Iterate and train through batches
-- Make new set of batches for the next epoch
-'''
