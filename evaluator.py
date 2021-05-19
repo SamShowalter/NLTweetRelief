@@ -78,7 +78,8 @@ class CrisisEvaluator(object):
                     = metric(labels, preds)
             else:
                 self.perf_dict[experiment_name]['per_label'][key]\
-                    = metric(labels, preds,labels = range(0,self.label_len),
+                    = metric(labels, preds,
+                             labels = range(0,self.label_len),
                             average = None)
 
     def get_perf(self,
