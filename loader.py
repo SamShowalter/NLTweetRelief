@@ -138,7 +138,7 @@ class Loader(object):
         crisis_tokens = crisis_tokens_labels[0]
         crisis_labels = crisis_tokens_labels[1]
 
-        return crisis_tokens, crisis_labels, sample_crises
+        return crisis_tokens, crisis_labels, self.crisis_le.transform(sample_crises)
 
     def load_files(self):
         """Load files from directory
@@ -166,6 +166,9 @@ class Loader(object):
         # Make sure that the same crises are present in train and dev data
         assert np.equal(self.train_crises.sort(), self.dev_crises.sort()).all(),\
             "Error, train and dev crisis mismatched - check information"
+
+        #Encode crises
+        self.crisis_le = LabelEncoder().fit(self.train_crises)
 
         # Get test crises
         self.test_crises = self.test_corpus['crisis'].drop_duplicates().to_numpy()
@@ -203,9 +206,10 @@ class Loader(object):
         crisis_tokens, crisis_labels, crises = self.__synthesize_data(batch_size, dataset=dataset)
 
         #Make true labels
-        final_tokens_labels = [[],[]]
+        final_tokens_labels = [[],[],[]]
         for i,l in enumerate(crisis_labels):
             s = crisis_tokens[i]
+            c = crises[i]
             new_label = [(np.ones(len(sentence))*self.le.transform([label])[0]).astype(int)
                          for sentence,label in zip(s, l)]
 
@@ -220,8 +224,9 @@ class Loader(object):
             #Add sample to batch
             final_tokens_labels[0].append(chained_tokens)
             final_tokens_labels[1].append(chained_labels)
+            final_tokens_labels[2].append(c)
 
-        return final_tokens_labels, crises
+        return final_tokens_labels
 
     def next_epoch_multilabel(self, num_batches = 100,
                    batch_size = 64,
@@ -335,5 +340,4 @@ if __name__ == "__main__":
     # print(len(d))
 
     d = l.next_epoch_multilabel(dataset = "test")
-    print(len(d))
 
