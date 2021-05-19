@@ -27,7 +27,7 @@ class CrisisEvaluator(object):
     """Evaluates Performance for Crises,
     Will make tables and graphs easier later"""
 
-    def __init__(self):#, data_loader):
+    def __init__(self, data_loader):
         """TODO: Evaluator for Crisis experiments
 
         :loader: Data loader
@@ -42,7 +42,7 @@ class CrisisEvaluator(object):
         self.perf_dict = {}
 
         #Replace this with real values eventually
-        self.label_len = len(self.label_le.classes_)
+        self.num_labels = len(self.label_le.classes_)
         self.num_crises = len(self.crisis_le.classes_)
 
         # Metrics to compute
@@ -157,7 +157,7 @@ class CrisisEvaluator(object):
 # Main method
 #######################################################################
 
-# if __name__ == "__main__":
+if __name__ == "__main__":
 #     preds = [ [1,2,3,1,0,0,0,0,0],
 #             [1,2,0,1,0,2,3,0,1]]
 
@@ -172,16 +172,22 @@ class CrisisEvaluator(object):
 #     batch_crises = crisis_le.transform(batch_crises)
 #     batch = list(zip(batch_data, batch_labels, batch_crises))
 
-#     ce = CrisisEvaluator()
-#     ce.crisis_le = crisis_le
 
-#     ce.get_per_crisis_perf("Test_experiment",preds, batch, kind = 'micro')
-#     ce.get_per_crisis_perf("Test_experiment",preds, batch, kind = 'macro')
+    # ce.get_per_crisis_perf("Test_experiment",preds, batch, kind = 'micro')
+    # ce.get_per_crisis_perf("Test_experiment",preds, batch, kind = 'macro')
 
-#     ce.get_per_label_perf("Test_experiment",preds, batch)
-#     ce.get_perf("Test_experiment",preds, batch, kind = 'micro')
-#     ce.get_perf("Test_experiment",preds, batch, kind = 'macro')
-#     ce.get_perf("Test_experiment",preds, batch, kind = 'weighted')
-#     print(ce.perf_dict)
+    # ce.get_per_label_perf("Test_experiment",preds, batch)
+    # ce.get_perf("Test_experiment",preds, batch, kind = 'micro')
+    # ce.get_perf("Test_experiment",preds, batch, kind = 'macro')
+    # ce.get_perf("Test_experiment",preds, batch, kind = 'weighted')
+    # print(ce.perf_dict)
+
+    from loader import Loader
+
+    l = Loader()
+    l.load_files()
+    ce = CrisisEvaluator(l)
+    print(ce.num_crises)
+    print(ce.num_labels)
 
 
