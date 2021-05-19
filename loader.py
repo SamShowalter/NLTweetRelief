@@ -91,7 +91,7 @@ class Loader(object):
 
     def preprocess_unilabel(self, sample, label):
         sentence = self.tokenize(sample)
-        labels = np.ones(len(sentence))*self.le.transform([label])
+        labels = np.ones(len(sentence))*self.label_le.transform([label])
         return sentence, labels
 
     def __synthesize_data(self,batch_size, dataset="train"):
@@ -157,7 +157,7 @@ class Loader(object):
         self.test_corpus = self.__load_file(self.test_dirs)
 
         #Make label encoder
-        self.le = LabelEncoder().fit(self.train_corpus['class_label'].drop_duplicates())
+        self.label_le = LabelEncoder().fit(self.train_corpus['class_label'].drop_duplicates())
 
         #Get list of crises in each set
         self.train_crises = self.train_corpus['crisis'].drop_duplicates().to_numpy()
@@ -167,11 +167,13 @@ class Loader(object):
         assert np.equal(self.train_crises.sort(), self.dev_crises.sort()).all(),\
             "Error, train and dev crisis mismatched - check information"
 
-        #Encode crises
-        self.crisis_le = LabelEncoder().fit(self.train_crises)
-
         # Get test crises
         self.test_crises = self.test_corpus['crisis'].drop_duplicates().to_numpy()
+
+        #Encode crises
+        self.crisis_le = LabelEncoder().fit(np.concatenate([self.train_crises,
+                                                            self.dev_crises,
+                                                            self.test_crises]))
 
         #Make dictionary of crises
         self.train_dict = self.__make_crisis_dict(self.train_corpus, self.train_crises)
@@ -210,7 +212,7 @@ class Loader(object):
         for i,l in enumerate(crisis_labels):
             s = crisis_tokens[i]
             c = crises[i]
-            new_label = [(np.ones(len(sentence))*self.le.transform([label])[0]).astype(int)
+            new_label = [(np.ones(len(sentence))*self.label_le.transform([label])[0]).astype(int)
                          for sentence,label in zip(s, l)]
 
             #Chain together tokens and broadcasted labels
@@ -264,7 +266,7 @@ class Loader(object):
             train_samples = corpus['tweet_text']\
                     .apply(lambda x: self.tokenize(x)).reset_index(drop = True)
 
-            train_labels_sentence = pd.DataFrame(self.le\
+            train_labels_sentence = pd.DataFrame(self.label_le\
                                                 .transform(corpus['class_label']),
                                                 columns = ['label'])
 
@@ -330,7 +332,7 @@ if __name__ == "__main__":
     #sample = [i.encode('cp1252') for i in sample]
     #print(sample)
     #print(tokens_labels[1][0])
-    #print(l.le.inverse_transform(tokens_labels[1][0]))
+    #print(l.label_le.inverse_transform(tokens_labels[1][0]))
     #sys.exit(1)
 
     # Test of creating an epoch

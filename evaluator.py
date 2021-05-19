@@ -32,15 +32,18 @@ class CrisisEvaluator(object):
 
         :loader: Data loader
         """
-        # self.loader = data_loader
-        # assert self.loader.le is not None, "Error, No label encoder for data loader"
-        # self.label_le = self.loader.le
-        # self.crisis_le =self.loader.crisis_le
+        self.loader = data_loader
+        assert self.loader.label_le is not None, "Error, No label encoder for data loader"
+        assert self.loader.crisis_le is not None, "Error, No label encoder for data loader"
+        self.label_le = self.loader.label_le
+        self.crisis_le =self.loader.crisis_le
+
+        # Performance dictionary
         self.perf_dict = {}
 
         #Replace this with real values eventually
-        self.label_len = 4
-        self.num_crises = 2
+        self.label_len = len(self.label_le.classes_)
+        self.num_crises = len(self.crisis_le.classes_)
 
         # Metrics to compute
         self.mets = {'confusion_matrix':confusion_matrix,
