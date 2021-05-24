@@ -6,7 +6,7 @@ from tqdm import tqdm
 from tokenizer_model_factory import TokenizerModelFactory
 import sys
 
-def train_model(tokenizer, model, n_epochs=1):
+def train_model(tokenizer, model, n_epochs=10):
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     model.to(device)
     model.train()
@@ -46,19 +46,20 @@ def train_model(tokenizer, model, n_epochs=1):
         print("train_acc", train_acc)
 
     model.eval()
-    return model, train_acc
+    return model, train_acc, l
 
 
-def benchmark(tokenizer, model):
+def benchmark(tokenizer, model, loader):
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
-    l_train = Loader()
+    # Dont need this
+    # loader = Loader()
 
-    l_train.load_files()
+    # loader.load_files()
 
     n_res = 0
     sum_res = 0
-    for batch, labels in l_train.next_epoch(batch_size=16, simulate=True, dataset="train"):
+    for batch, labels,crises in loader.next_epoch(batch_size=16, simulate=True, dataset="train"):
         tokenized = tokenizer(list(batch), padding=True, is_split_into_words=True, return_length=True)
         input_ids = torch.tensor(tokenized["input_ids"]).to(device)
         attention_mask = torch.tensor(tokenized["attention_mask"]).to(device)
@@ -73,13 +74,13 @@ def benchmark(tokenizer, model):
 
     print("train_acc", train_acc)
 
-    l_dev = Loader()
+    # l_dev = Loader()
 
-    l_dev.load_files()
+    # l_dev.load_files()
 
     n_res = 0
     sum_res = 0
-    for batch, labels in l_dev.next_epoch(batch_size=16, simulate=True, dataset="dev"):
+    for batch, labels,crises in loader.next_epoch(batch_size=16, simulate=True, dataset="dev"):
         tokenized = tokenizer(list(batch), padding=True, is_split_into_words=True, return_length=True)
         input_ids = torch.tensor(tokenized["input_ids"]).to(device)
         attention_mask = torch.tensor(tokenized["attention_mask"]).to(device)

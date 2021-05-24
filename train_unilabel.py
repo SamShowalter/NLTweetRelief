@@ -23,7 +23,7 @@ def train_model(tokenizer, model, n_epochs=1):
 
         n_res = 0
         sum_res = 0
-        for epoch in l.next_epoch(batch_size=8, simulate = False):
+        for epoch in l.next_epoch(batch_size=32, simulate = False, dataset = 'train'):
             batch = epoch[0]
             labels = epoch[1]
             optim.zero_grad()
@@ -55,15 +55,15 @@ def train_model(tokenizer, model, n_epochs=1):
         print("train_acc", train_acc)
 
     model.eval()
-    return model, train_acc
+    return model, train_acc, l
 
 
-def benchmark(tokenizer, model):
+def benchmark(tokenizer, model, loader):
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
-    l_train = Loader()
+    # loader = Loader()
 
-    l_train.load_files()
+    # loader.load_files()
 
     n_res = 0
     sum_res = 0
@@ -81,10 +81,10 @@ def benchmark(tokenizer, model):
 
     print("train_acc", train_acc)
 
-    l_dev = Loader()
+    # l_dev = Loader()
 
-    l_dev.load_files()
-    print(l_dev.unilabel_df)
+    # l_dev.load_files()
+    # print(l_dev.unilabel_df)
 
     n_res = 0
     sum_res = 0
