@@ -3,8 +3,10 @@ from transformers import AdamW
 from loader import Loader
 import torch
 from tqdm import tqdm
+from tokenizer_model_factory import TokenizerModelFactory
+import sys
 
-def train_model(tokenizer, model, n_epochs=10):
+def train_model(tokenizer, model, n_epochs=1):
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     model.to(device)
     model.train()
@@ -93,11 +95,14 @@ def benchmark(tokenizer, model):
     print("dev_acc", train_acc)
     return train_acc, dev_acc
 
-tokenizer = DistilBertTokenizerFast.from_pretrained('distilbert-base-uncased')
-model = DistilBertForTokenClassification.from_pretrained("distilbert-base-uncased", num_labels=10)
+model_name = sys.argv[1]
+
+tokenizermodelfactory = TokenizerModelFactory()
+tokenizer, model = tokenizermodelfactory.makeTokenizerModel(model_name, unilabel=False, num_labels=10)
+model = model.half()
 
 model, train_acc = train_model(tokenizer, model)
-_, dev_acc = benchmark(tokenizer, model)
 
-import numpy as np
-np.savetxt('multilabel.csv', ([train_acc.item()], [dev_acc.item()]), delimiter=',')
+model.save_pretrained("models/multilabel/%s" % model_name)
+
+# _, dev_acc = benchmark(tokenizer, model)
