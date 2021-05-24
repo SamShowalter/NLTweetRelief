@@ -3,8 +3,10 @@ from transformers import AdamW
 from loader import Loader
 import torch
 from tqdm import tqdm
+from tokenizer_model_factory import TokenizerModelFactory
+import sys
 
-def train_model(tokenizer, model, n_epochs=10):
+def train_model(tokenizer, model, n_epochs=1):
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     model.to(device)
     model.train()
@@ -19,7 +21,7 @@ def train_model(tokenizer, model, n_epochs=10):
         print(epoch_i)
         n_res = 0
         sum_res = 0
-        for epoch in l.next_epoch(batch_size=16, simulate = True):
+        for epoch in l.next_epoch(batch_size=8, simulate = True):
             batch = epoch[0]
             labels = epoch[1]
             optim.zero_grad()
@@ -44,7 +46,7 @@ def train_model(tokenizer, model, n_epochs=10):
         print("train_acc", train_acc)
 
     model.eval()
-    return model, train_acc, l
+    return model, train_acc
 
 
 def benchmark(tokenizer, model, loader):
@@ -94,11 +96,14 @@ def benchmark(tokenizer, model, loader):
     print("dev_acc", train_acc)
     return train_acc, dev_acc
 
-tokenizer = DistilBertTokenizerFast.from_pretrained('distilbert-base-uncased')
-model = DistilBertForTokenClassification.from_pretrained("distilbert-base-uncased", num_labels=10)
+model_name = sys.argv[1]
 
-model, train_acc, loader = train_model(tokenizer, model)
-_, dev_acc = benchmark(tokenizer, model, loader)
+tokenizermodelfactory = TokenizerModelFactory()
+tokenizer, model = tokenizermodelfactory.makeTokenizerModel(model_name, unilabel=False, num_labels=10)
+model = model.half()
 
-import numpy as np
-np.savetxt('multilabel.csv', ([train_acc.item()], [dev_acc.item()]), delimiter=',')
+model, train_acc = train_model(tokenizer, model)
+
+model.save_pretrained("models/multilabel/%s" % model_name)
+
+# _, dev_acc = benchmark(tokenizer, model)

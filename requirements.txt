@@ -1,5 +1,9 @@
-pandas
+emoji
+emojis
+nltk
 numpy
-tqdm
+pandas
 sklearn
+tqdm
 transformers
+emoji
