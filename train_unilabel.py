@@ -55,7 +55,7 @@ def train_model(tokenizer, model, n_epochs=1):
         print("train_acc", train_acc)
 
     model.eval()
-    return model, train_acc, l
+    return model, train_acc
 
 
 def benchmark(tokenizer, model, loader):

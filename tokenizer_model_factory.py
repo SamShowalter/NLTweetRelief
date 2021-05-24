@@ -11,23 +11,23 @@ class TokenizerModelFactory():
             return self.makeMultilabelModel(modelName, num_labels=num_labels, **kwargs)
 
 
-    def makeUnilabelModel(self, modelName, **kwargs):
+    def makeUnilabelModel(self, modelName, num_labels=10, **kwargs):
         if modelName == 'distilbert-base-uncased':
             tokenizer = DistilBertTokenizerFast.from_pretrained('distilbert-base-uncased')
-            model = DistilBertForSequenceClassification.from_pretrained("distilbert-base-uncased", **kwargs)
+            model = DistilBertForSequenceClassification.from_pretrained("distilbert-base-uncased", num_labels=num_labels, **kwargs)
         if modelName == 'gpt2':
             tokenizer = GPT2TokenizerFast.from_pretrained('gpt2')
             tokenizer.add_special_tokens({'pad_token': '[PAD]'})
-            model = GPT2ForSequenceClassification.from_pretrained("gpt2", **kwargs)
+            model = GPT2ForSequenceClassification.from_pretrained("gpt2", num_labels=num_labels, **kwargs)
             model.resize_token_embeddings(len(tokenizer))
             # add padding token
             model.config.pad_token_id = tokenizer('[PAD]').input_ids[0]
         if modelName == 'bertweet':
             tokenizer = AutoTokenizer.from_pretrained('vinai/bertweet-base')
-            model = AutoModelForSequenceClassification.from_pretrained("vinai/bertweet-base", **kwargs)
+            model = AutoModelForSequenceClassification.from_pretrained("vinai/bertweet-base", num_labels=num_labels, **kwargs)
         if modelName == 'distilroberta-base':
             tokenizer = AutoTokenizer.from_pretrained('distilroberta-base')
-            model = AutoModelForSequenceClassification.from_pretrained("distilroberta-base", **kwargs)
+            model = AutoModelForSequenceClassification.from_pretrained("distilroberta-base", num_labels=num_labels, **kwargs)
         if modelName == 'lstm':
             tokenizer = AutoTokenizer.from_pretrained('distilbert-base-uncased')
             model = LSTMCclassifier(128, 64, 2, tokenizer.vocab_size, num_labels)
@@ -37,13 +37,13 @@ class TokenizerModelFactory():
     def makeMultilabelModel(self, modelName, num_labels=10, **kwargs):
         if modelName == 'distilbert-base-uncased':
             tokenizer = DistilBertTokenizerFast.from_pretrained('distilbert-base-uncased')
-            model = DistilBertForTokenClassification.from_pretrained("distilbert-base-uncased", **kwargs)
+            model = DistilBertForTokenClassification.from_pretrained("distilbert-base-uncased", num_labels=num_labels, **kwargs)
         if modelName == 'bertweet':
             tokenizer = AutoTokenizer.from_pretrained('vinai/bertweet-base')
-            model = AutoModelForTokenClassification.from_pretrained("vinai/bertweet-base", **kwargs)
+            model = AutoModelForTokenClassification.from_pretrained("vinai/bertweet-base", num_labels=num_labels, **kwargs)
         if modelName == 'distilroberta-base':
             tokenizer = AutoTokenizer.from_pretrained('distilroberta-base')
-            model = AutoModelForTokenClassification.from_pretrained("distilroberta-base", **kwargs)
+            model = AutoModelForTokenClassification.from_pretrained("distilroberta-base", num_labels=num_labels, **kwargs)
         if modelName == 'lstm':
             tokenizer = AutoTokenizer.from_pretrained('distilbert-base-uncased')
             model = LSTMTagger(128, 64, 2, tokenizer.vocab_size, num_labels)

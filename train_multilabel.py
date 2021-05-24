@@ -6,7 +6,7 @@ from tqdm import tqdm
 from tokenizer_model_factory import TokenizerModelFactory
 import sys
 
-def train_model(tokenizer, model, n_epochs=10):
+def train_model(tokenizer, model, n_epochs=1):
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     model.to(device)
     model.train()
@@ -21,7 +21,7 @@ def train_model(tokenizer, model, n_epochs=10):
         print(epoch_i)
         n_res = 0
         sum_res = 0
-        for epoch in l.next_epoch(batch_size=16, simulate = True):
+        for epoch in l.next_epoch(batch_size=8, simulate = True):
             batch = epoch[0]
             labels = epoch[1]
             optim.zero_grad()
@@ -46,7 +46,7 @@ def train_model(tokenizer, model, n_epochs=10):
         print("train_acc", train_acc)
 
     model.eval()
-    return model, train_acc, l
+    return model, train_acc
 
 
 def benchmark(tokenizer, model, loader):
