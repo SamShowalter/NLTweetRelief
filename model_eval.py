@@ -98,17 +98,10 @@ if __name__ == "__main__":
     data = loader.next_epoch(num_batches=100,
                                 batch_size =32,
                                 simulate = True,
-                                dataset = "dev")
-
-    # test = [l[1] for l in data[:2]]
-    # test = itertools.chain.from_iterable(test)
-    # labs =np.array(list(itertools.chain.from_iterable(test)))
-    # print(len(labs))
-    # print(test)
-    # print(len(test))
+                                dataset = "train")
 
     preds = create_validation_labels(tokenizer, model,data)
-    ce.get_perf("Test", preds, data, kind="weighted")
+    ce.get_perf("Test", preds, data, kind="micro")
     print(ce.perf_dict)
 
 
