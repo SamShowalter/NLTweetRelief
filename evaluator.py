@@ -55,12 +55,12 @@ class CrisisEvaluator(object):
 
     def get_per_label_perf(self,
                            experiment_name,
-                           pred_batches, label_batches):
+                           pred_batches, data_batches):
         """Get per label performance
 
         :experiment_name: Name of experiment
         :pred_batches: Batches of only predictions
-        :label_batches: original batches
+        :data_batches: original batches
 
         """
 
@@ -70,8 +70,9 @@ class CrisisEvaluator(object):
             self.perf_dict[experiment_name]['per_label'] = {}
 
         preds = np.array(list(itertools.chain.from_iterable(pred_batches)))
-        labels_isolated = [b[1] for b in label_batches]
-        labels = np.array(list(itertools.chain.from_iterable(labels_isolated)))
+        labels_isolated = [[l for l in b[1]] for b in data_batches]
+        labels_flattened = itertools.chain.from_iterable(labels_isolated)
+        labels = np.array(list(itertools.chain.from_iterable(labels_flattened)))
 
         for key,metric in self.mets.items():
             if key == 'confusion_matrix':
@@ -85,13 +86,13 @@ class CrisisEvaluator(object):
 
     def get_perf(self,
                 experiment_name,
-                 pred_batches, label_batches,
+                 pred_batches, data_batches,
                  kind = 'macro'):
         """Get performance metrics
 
         :experiment_name: Name of experiment
         :pred_batches: Batches of only predictions
-        :label_batches: original batches
+        :data_batches: original batches
 
         """
 
@@ -101,8 +102,13 @@ class CrisisEvaluator(object):
             self.perf_dict[experiment_name][kind] = {}
 
         preds = np.array(list(itertools.chain.from_iterable(pred_batches)))
-        labels_isolated = [b[1] for b in label_batches]
-        labels = np.array(list(itertools.chain.from_iterable(labels_isolated)))
+        labels_isolated = [[l for l in b[1]] for b in data_batches]
+        labels_flattened = itertools.chain.from_iterable(labels_isolated)
+        labels = np.array(list(itertools.chain.from_iterable(labels_flattened)))
+        print("preds")
+        print(preds.shape)
+        print("labels")
+        print(labels.shape)
 
         for key,metric in self.mets.items():
             if key == 'confusion_matrix':
@@ -114,7 +120,7 @@ class CrisisEvaluator(object):
 
     def get_per_crisis_perf(self,
                 experiment_name,
-                 pred_batches, label_batches,
+                 pred_batches, data_batches,
                  kind = 'macro'):
         """Get per label performance
 
@@ -133,9 +139,10 @@ class CrisisEvaluator(object):
 
         # Isolate preds, labels, crises
         preds = np.array(list(itertools.chain.from_iterable(pred_batches)))
-        labels_isolated = [b[1] for b in label_batches]
-        crises_isolated = [[b[2]]*len(b[1]) for b in label_batches]
-        labels = np.array(list(itertools.chain.from_iterable(labels_isolated)))
+        labels_isolated = [[l for l in b[1]] for b in data_batches]
+        labels_flattened = itertools.chain.from_iterable(labels_isolated)
+        labels = np.array(list(itertools.chain.from_iterable(labels_flattened)))
+        crises_isolated = [[b[2]]*len(b[1]) for b in data_batches]
         crises = np.array(list(itertools.chain.from_iterable(crises_isolated)))
 
         #Isolate crisis names and iterate to get performance
@@ -184,12 +191,14 @@ if __name__ == "__main__":
     # ce.get_perf("Test_experiment",preds, batch, kind = 'weighted')
     # print(ce.perf_dict)
 
-    from loader import Loader
+    # from loader import Loader
 
-    l = Loader()
-    l.load_files()
-    ce = CrisisEvaluator(l)
-    print(ce.num_crises)
-    print(ce.num_labels)
+
+    # l = Loader()
+    # l.load_files()
+    # ce = CrisisEvaluator(l)
+    # print(ce.num_crises)
+    # print(ce.num_labels)
+    pass
 
 
