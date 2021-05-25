@@ -38,7 +38,7 @@ class TokenizerModelFactory():
         if modelName == 'distilbert-base-uncased':
             print(root)
             tokenizer = DistilBertTokenizerFast.from_pretrained('distilbert-base-uncased')
-            model = DistilBertForTokenClassification.from_pretrained("distilbert-base-uncased", num_labels=num_labels, **kwargs)
+            model = DistilBertForTokenClassification.from_pretrained(root + "distilbert-base-uncased", num_labels=num_labels, **kwargs)
         if modelName == 'bertweet':
             tokenizer = AutoTokenizer.from_pretrained('vinai/bertweet-base')
             model = AutoModelForTokenClassification.from_pretrained(root +"vinai/bertweet-base", num_labels=num_labels, **kwargs)
