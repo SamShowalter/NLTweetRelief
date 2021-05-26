@@ -30,7 +30,8 @@ from evaluator import CrisisEvaluator
 #################################################################################
 
 def create_validation_preds(tokenizer, model, data,
-                            verbose = True):
+                            verbose = True,
+                            path = None):
     """Create evaluation predictions for a pretrained
     model and return the tensors for evaluation
 
@@ -54,12 +55,20 @@ def create_validation_preds(tokenizer, model, data,
             labels = epoch[1]
 
             #Get tokenization
-            tokenized = tokenizer(list(batch), padding=True, is_split_into_words=True, return_length=True)
+            model_name = path.replace("/",'')
+            max_len = tokenizer.max_model_input_sizes[model_name] if model_name != 'lstm' else 512
+            tokenized = tokenizer(list(batch), padding=True, truncation=True,
+                                  is_split_into_words=True, return_length=True, max_length=max_len)
             input_ids = torch.tensor(tokenized["input_ids"]).to(device)
             attention_mask = torch.tensor(tokenized["attention_mask"]).to(device)
+            # labels_tensor = torch.tensor([list(label) +
+            #                             [-100]*(length - len(label)) for label, length
+            #                             in zip(labels, tokenized["length"])]).to(device)
             labels_tensor = torch.tensor([list(label) +
-                                        [-100]*(length - len(label)) for label, length
-                                        in zip(labels, tokenized["length"])]).to(device)
+                                        [-100]*(length - len(label))
+                                          if len(label) <= max_len else
+                                          list(label)[:max_len] for label, length
+                                          in zip(labels, tokenized["length"])]).to(device)
 
             outputs = model(input_ids, attention_mask=attention_mask, labels=labels_tensor)
             preds = outputs.logits.max(axis=-1)[1]
@@ -113,13 +122,15 @@ def bootstrap_multilabel_perf(path,
         ce = CrisisEvaluator(loader)
 
     for t in tqdm(range(trials)):
-        data = loader.next_epoch(num_batches=num_batches,
-                                    batch_size =batch_size,
-                                    simulate = True,
-                                    dataset = dataset,
-                                    verbose = False)
 
-        preds = create_validation_preds(tokenizer, model,data, verbose =verbose)
+        data = loader.next_epoch(num_batches=num_batches,
+                            batch_size =batch_size,
+                            simulate = True,
+                            dataset = dataset,
+                            verbose = False)
+
+        preds = create_validation_preds(tokenizer, model,data, verbose =verbose,path = path)
+
         for k in kinds:
 
             # Overall metrics
@@ -149,25 +160,24 @@ def bootstrap_multilabel_perf(path,
 #   Main
 #################################################################################
 
-if __name__ == "__main__":
-    ROOT = '/extra/datalab_scratch0/showrobl/models/multilabel/dis'
-
-    trials = 100
-    num_batches = 30
-    paths = ['distilroberta-base','lstm','distilbert-base-uncased']
-    datas = ['dev','test']
-    for d in datas:
-        for p in paths:
-            print(p, d)
-            ce = bootstrap_multilabel_perf(p,
-                                   '{}_{}'.format(p,d),
-                                   num_batches = num_batches,
-                                   trials = trials,
-                                   dataset = d)
-
-            with open('artifacts/{}_all_perf_{}_t{}_b{}.pkl'
-                      .format(p.replace("/","").split("-")[0],d,trials,num_batches),'wb') as file:
-                pkl.dump(ce.perf_dict, file)
+# if __name__ == "__main__":
+#     ROOT = '/extra/datalab_scratch0/showrobl/models/multilabel/dis'
+#     trials = 100
+#     num_batches = 30
+#     paths = ['distilroberta-base','distilbert-base-uncased','lstm']
+#     datas = ['dev','test']
+#     for d in datas:
+#         for p in paths:
+#             print(p, d)
+#             ce = bootstrap_multilabel_perf(p,
+#                                    '{}_{}'.format(p,d),
+#                                    num_batches = num_batches,
+#                                    trials = trials,
+#                                    dataset = d)
+#             # Save files by model and data type
+#             with open('artifacts/{}_all_perf_{}_t{}_b{}.pkl'
+#                       .format(p.replace("/","").split("-")[0],d,trials,num_batches),'wb') as file:
+#                 pkl.dump(ce.perf_dict, file)
 
 
 
