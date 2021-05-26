@@ -69,28 +69,34 @@ class CrisisEvaluator(object):
 
         if not self.perf_dict.get(experiment_name):
             self.perf_dict[experiment_name] = {}
-        if not self.perf_dict[experiment_name].get(kind):
-            self.perf_dict[experiment_name][kind] = {}
-        if not self.perf_dict[experiment_name][kind].get("per_label"):
-            self.perf_dict[experiment_name][kind]['per_label'] = {}
+        if not self.perf_dict[experiment_name].get("per_label"):
+            self.perf_dict[experiment_name]['per_label'] = {}
+        if not self.perf_dict[experiment_name]["per_label"].get(kind):
+            self.perf_dict[experiment_name]['per_label'][kind] = {}
 
         preds = np.array(list(itertools.chain.from_iterable(pred_batches)))
-        labels_isolated = [[l for l in b[1]] for b in data_batches]
+        labels_isolated = [b[1] for b in data_batches]
         labels_flattened = itertools.chain.from_iterable(labels_isolated)
         labels = np.array(list(itertools.chain.from_iterable(labels_flattened)))
 
-        for key,metric in self.mets.items():
-            if key == 'confusion_matrix':
-                self.perf_dict[experiment_name][kind]['per_label'][key]\
-                    = metric(labels, preds)
-            elif key == 'accuracy':
-                self.perf_dict[experiment_name][kind]['per_label'][key]\
-                    = metric(labels, preds)
-            else:
-                self.perf_dict[experiment_name]['per_label'][key]\
-                    = metric(labels, preds,
-                             labels = range(0,self.label_len),
-                            average = None)
+        #Isolate crisis names and iterate to get performance
+        l_names = self.label_le.inverse_transform(range(0,self.num_labels))
+        for l in range(self.num_labels):
+            self.perf_dict[experiment_name]['per_label'][kind][l_names[l]] = {}
+            label_mask = (labels == l)
+
+            label_preds = preds[label_mask]
+            label_labels = labels[label_mask]
+
+            for key,metric in self.mets.items():
+                if key in ['accuracy','confusion_matrix']:
+                    if key == 'accuracy':
+                        self.perf_dict[experiment_name]['per_label'][kind][l_names[l]][key]\
+                            = metric(label_labels, label_preds)
+                else:
+                    self.perf_dict[experiment_name]['per_label'][kind][l_names[l]][key]\
+                        = metric(label_labels, label_preds,
+                                average = kind)
 
     def get_perf(self,
                 experiment_name,
@@ -110,14 +116,12 @@ class CrisisEvaluator(object):
             self.perf_dict[experiment_name][kind] = {}
 
         preds = np.array(list(itertools.chain.from_iterable(pred_batches)))
-        labels_isolated = [[l for l in b[1]] for b in data_batches]
+        labels_isolated = [b[1] for b in data_batches]
         labels_flattened = itertools.chain.from_iterable(labels_isolated)
         labels = np.array(list(itertools.chain.from_iterable(labels_flattened)))
 
         for key,metric in self.mets.items():
-            if key == 'confusion_matrix':
-                continue
-            elif key == 'accuracy':
+            if key in ['accuracy','confusion_matrix']:
                 self.perf_dict[experiment_name][kind][key]\
                     = metric(labels,preds)
             else:
@@ -146,25 +150,24 @@ class CrisisEvaluator(object):
 
         # Isolate preds, labels, crises
         preds = np.array(list(itertools.chain.from_iterable(pred_batches)))
-        labels_isolated = [[l for l in b[1]] for b in data_batches]
-        labels_flattened = itertools.chain.from_iterable(labels_isolated)
+        labels_isolated = [b[1] for b in data_batches]
+        labels_flattened = list(itertools.chain.from_iterable(labels_isolated))
         labels = np.array(list(itertools.chain.from_iterable(labels_flattened)))
-        crises_isolated = [[b[2]]*len(b[1]) for b in data_batches]
-        crises = np.array(list(itertools.chain.from_iterable(crises_isolated)))
+        crises_isolated= list(itertools.chain.from_iterable(b[2] for b in data_batches))
+        crises_flattened = [[c]*len(l) for l,c in zip(labels_flattened, crises_isolated)]
+        crises = np.array(list(itertools.chain.from_iterable(crises_flattened)))
 
         #Isolate crisis names and iterate to get performance
         c_names = self.crisis_le.inverse_transform(range(0,self.num_crises))
         for c in range(self.num_crises):
             self.perf_dict[experiment_name]['per_crisis'][kind][c_names[c]] = {}
-            crisis_mask = crises == c
+            crisis_mask = (crises == c)
 
             crisis_preds = preds[crisis_mask]
             crisis_labels = labels[crisis_mask]
 
             for key,metric in self.mets.items():
-                if key == 'confusion_matrix':
-                    continue
-                elif key == 'accuracy':
+                if key in ['accuracy','confusion_matrix']:
                     self.perf_dict[experiment_name]['per_crisis'][kind][c_names[c]][key]\
                         = metric(crisis_labels, crisis_preds)
                 else:

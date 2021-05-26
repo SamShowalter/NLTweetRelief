@@ -232,7 +232,8 @@ class Loader(object):
 
     def next_epoch_multilabel(self, num_batches = 100,
                    batch_size = 64,
-                   dataset="train"):
+                   dataset="train",
+                   verbose = True):
         """Create a set of new data_aug batches for
         experimentation and training
 
@@ -241,16 +242,18 @@ class Loader(object):
 
         """
 
-        print("Creating {} multilabel batches of {} samples from {} set for next epoch"
+        if verbose:
+            print("Creating {} multilabel batches of {} samples from {} set for next epoch"
               .format(num_batches,batch_size, dataset))
         epoch = []
-        for i in tqdm(range(num_batches)):
+        for i in tqdm(range(num_batches), disable = not verbose):
             epoch.append(self.next_batch_multilabel(batch_size = batch_size,
                         dataset=dataset))
 
         return epoch
 
-    def next_epoch_unilabel(self, batch_size = 64,dataset="train"):
+    def next_epoch_unilabel(self, batch_size = 64,dataset="train",
+                            verbose = True):
         """Get next epoch of data for unilabel dataset
 
         :returns: list of batches in certain size, plus
@@ -283,8 +286,9 @@ class Loader(object):
         shuffled_df = list(zip(*self.unilabel_df.sample(frac = 1).values.tolist()))
 
         batches = []
-        print("Preparing unilabel batches of {} samples taken from {} set for next epoch".format(batch_size, dataset))
-        for i in tqdm(range(0,len(shuffled_df[0]), batch_size)):
+        if verbose:
+            print("Preparing unilabel batches of {} samples taken from {} set for next epoch".format(batch_size, dataset))
+        for i in tqdm(range(0,len(shuffled_df[0]), batch_size), disable = not verbose):
             batches.append([shuffled_df[0][i:i+batch_size],
                             shuffled_df[1][i:i+batch_size]])
 
@@ -293,13 +297,16 @@ class Loader(object):
     def next_epoch(self,num_batches =100,
                    batch_size = 64,
                    simulate = True,
-                   dataset = "train"):
+                   dataset = "train",
+                   verbose = True):
         if simulate:
             return self.next_epoch_multilabel(num_batches,
                                               batch_size,
-                                              dataset=dataset)
+                                              dataset=dataset,
+                                              verbose = verbose)
         else:
-            return self.next_epoch_unilabel(batch_size,dataset=dataset)
+            return self.next_epoch_unilabel(batch_size,dataset=dataset,
+                                            verbose = verbose)
 
 
 

@@ -35,10 +35,10 @@ class TokenizerModelFactory():
         return tokenizer, model
 
     def makeMultilabelModel(self, modelName, num_labels=10,root = '', **kwargs):
-        if modelName == 'distilbert-base-uncased':
+        if modelName in ['distilbert-base-uncased','distilbert2/','distilbert3/']:
             print(root)
             tokenizer = DistilBertTokenizerFast.from_pretrained('distilbert-base-uncased')
-            model = DistilBertForTokenClassification.from_pretrained(root + "distilbert-base-uncased", num_labels=num_labels, **kwargs)
+            model = DistilBertForTokenClassification.from_pretrained(root + modelName, num_labels=num_labels, **kwargs)
         if modelName == 'bertweet':
             tokenizer = AutoTokenizer.from_pretrained('vinai/bertweet-base')
             model = AutoModelForTokenClassification.from_pretrained(root +"vinai/bertweet-base", num_labels=num_labels, **kwargs)

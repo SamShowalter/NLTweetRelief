@@ -15,6 +15,9 @@ import pandas as pd
 import numpy as np
 import os
 import itertools
+import pickle as pkl
+import warnings
+warnings.filterwarnings("ignore")
 import sys
 from tqdm import tqdm
 import torch
@@ -26,7 +29,8 @@ from evaluator import CrisisEvaluator
 #   Function-Class Declaration
 #################################################################################
 
-def create_validation_labels(tokenizer, model, data):
+def create_validation_preds(tokenizer, model, data,
+                            verbose = True):
     """Create evaluation predictions for a pretrained
     model and return the tensors for evaluation
 
@@ -36,7 +40,7 @@ def create_validation_labels(tokenizer, model, data):
 
     """
     device = torch.device('cuda')
-    model = model.to(device)
+    model = model.to(device).eval()
     all_preds = []
     all_labels = []
 
@@ -59,6 +63,7 @@ def create_validation_labels(tokenizer, model, data):
 
             outputs = model(input_ids, attention_mask=attention_mask, labels=labels_tensor)
             preds = outputs.logits.max(axis=-1)[1]
+            # print(preds)
             mask = labels_tensor != -100
             preds = [p[l != -100].tolist() for p,l in zip(preds, labels_tensor)]
             # labels = [l[l != -100].tolist() for l in labels_tensor]
@@ -85,6 +90,60 @@ def read_in_loader_tok_model(path,
     tokenizer, model = tkm.makeMultilabelModel(path, root = root)
     return l, tokenizer, model
 
+def bootstrap_multilabel_perf(path,
+                              experiment_name,
+                              ce = None,
+                              trials = 10,
+                              num_batches= 100,
+                              batch_size =32,
+                              dataset = "dev",
+                              kinds = ["weighted","micro","macro"],
+                              verbose = True,
+                              root = '/extra/datalab_scratch0/showrobl/models/multilabel/'):
+    """Boostrap performance for multilabel classification
+
+    :path: Path to trained model
+    :returns: CrisisEvaluator with Results
+
+    """
+
+    loader, tokenizer, model = read_in_loader_tok_model(path,
+                                                        root = root)
+    if not ce:
+        ce = CrisisEvaluator(loader)
+
+    for t in tqdm(range(trials)):
+        data = loader.next_epoch(num_batches=num_batches,
+                                    batch_size =batch_size,
+                                    simulate = True,
+                                    dataset = dataset,
+                                    verbose = False)
+
+        preds = create_validation_preds(tokenizer, model,data, verbose =verbose)
+        for k in kinds:
+
+            # Overall metrics
+            ce.get_perf(experiment_name + "_{}".format(t),
+                    preds,
+                    data,
+                    kind= k)
+
+            # Per label metrics
+            ce.get_per_label_perf(experiment_name + "_{}".format(t),
+                    preds,
+                    data,
+                    kind= k)
+
+            # Per crisis metrics
+            ce.get_per_crisis_perf(experiment_name + "_{}".format(t),
+                    preds,
+                    data,
+                    kind= k)
+
+    return ce
+
+
+
 
 #################################################################################
 #   Main
@@ -92,18 +151,27 @@ def read_in_loader_tok_model(path,
 
 if __name__ == "__main__":
     ROOT = '/extra/datalab_scratch0/showrobl/models/'
-    loader, tokenizer, model = read_in_loader_tok_model('distilbert-base-uncased',
-                                                        root = ROOT + 'multilabel/')
-    ce = CrisisEvaluator(loader)
-    data = loader.next_epoch(num_batches=100,
-                                batch_size =32,
-                                simulate = True,
-                                dataset = "dev")
+    ce = bootstrap_multilabel_perf('distilbert3/',
+                                   'Test_Distilbert3',
+                                   num_batches = 32,
+                                   trials = 50,
+                                   dataset = "dev")
 
-    preds = create_validation_labels(tokenizer, model,data)
-    print(preds[:100])
-    ce.get_perf("Test", preds, data, kind="weighted")
-    print(ce.perf_dict)
+    with open('artifacts/distilbert_all_perf_dev_t50_b32.pkl','wb') as file:
+        pkl.dump(ce.perf_dict, file)
+
+    # loader, tokenizer, model = read_in_loader_tok_model('distilbert3/',
+    #                                                     root = ROOT + 'multilabel/')
+    # ce = CrisisEvaluator(loader)
+    # data = loader.next_epoch(num_batches=100,
+    #                             batch_size =32,
+    #                             simulate = True,
+    #                             dataset = "test")
+
+    # preds = create_validation_preds(tokenizer, model,data)
+    # print(preds[:100])
+    # ce.get_perf("Test", preds, data, kind="macro")
+    # print(ce.perf_dict)
 
 
 
