@@ -152,23 +152,22 @@ def bootstrap_multilabel_perf(path,
 if __name__ == "__main__":
     ROOT = '/extra/datalab_scratch0/showrobl/models/multilabel/dis'
 
-    trials = 1
+    trials = 100
     num_batches = 30
-    paths = ['distilbert-base-uncased',]
+    paths = ['distilroberta-base','lstm','distilbert-base-uncased']
     datas = ['dev','test']
     for d in datas:
         for p in paths:
+            print(p, d)
             ce = bootstrap_multilabel_perf(p,
                                    '{}_{}'.format(p,d),
                                    num_batches = num_batches,
                                    trials = trials,
                                    dataset = d)
 
-            print(ce.per_dict)
-            sys.exit(1)
-            # with open('artifacts/distilbert_all_perf_{}_t{}_b{}.pkl'
-            #           .format(d,trials,num_batches),'wb') as file:
-            #     pkl.dump(ce.perf_dict, file)
+            with open('artifacts/{}_all_perf_{}_t{}_b{}.pkl'
+                      .format(p.replace("/","").split("-")[0],d,trials,num_batches),'wb') as file:
+                pkl.dump(ce.perf_dict, file)
 
 
 
