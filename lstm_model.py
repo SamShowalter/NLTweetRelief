@@ -11,8 +11,8 @@ class LSTMTagger(nn.Module):
         super(LSTMTagger, self).__init__()
         self.hidden_dim = hidden_dim
         self.word_embeddings =  nn.Embedding(vocab_size, embedding_dim)
-        self.lstm = nn.LSTM(embedding_dim, hidden_dim)
-        self.hidden2tag = nn.Linear(hidden_dim, out_size)
+        self.lstm = nn.LSTM(embedding_dim, hidden_dim, num_layers=num_layers, bidirectional=True)
+        self.hidden2tag = nn.Linear(2*hidden_dim, out_size)
         self.criterion = nn.NLLLoss()
 
     def forward(self, input_ids, attention_mask, labels=None):
@@ -32,7 +32,7 @@ class LSTMTagger(nn.Module):
         return LSTMOutput(tag_scores)
 
     def save_pretrained(self, folder):
-        os.makedirs(folder)
+        os.makedirs(folder, exist_ok=True)
         return torch.save(self.state_dict(), folder + "/model.pt")
 
 
@@ -41,7 +41,7 @@ class LSTMClassifier(nn.Module):
         super(LSTMTagger, self).__init__()
         self.hidden_dim = hidden_dim
         self.word_embeddings =  nn.Embedding(vocab_size, embedding_dim)
-        self.lstm = nn.LSTM(embedding_dim, hidden_dim)
+        self.lstm = nn.LSTM(embedding_dim, hidden_dim, num_layers=num_layers, bidirectional=True)
         self.hidden2tag = nn.Linear(hidden_dim, out_size)
         self.criterion = nn.NLLLoss()
 
@@ -63,5 +63,5 @@ class LSTMClassifier(nn.Module):
         return LSTMOutput(tag_scores)
 
     def save_pretrained(self, folder):
-        os.makedirs(folder)
+        os.makedirs(folder, exist_ok=True)
         return torch.save(self.state_dict(), folder + "/model.pt")

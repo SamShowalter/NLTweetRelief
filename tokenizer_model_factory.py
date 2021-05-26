@@ -42,9 +42,10 @@ class TokenizerModelFactory():
             tokenizer = AutoTokenizer.from_pretrained('vinai/bertweet-base')
             model = AutoModelForTokenClassification.from_pretrained("vinai/bertweet-base", num_labels=num_labels, **kwargs)
         if modelName == 'distilroberta-base':
-            tokenizer = AutoTokenizer.from_pretrained('distilroberta-base')
+            tokenizer = AutoTokenizer.from_pretrained('distilroberta-base', add_prefix_space=True)
             model = AutoModelForTokenClassification.from_pretrained("distilroberta-base", num_labels=num_labels, **kwargs)
         if modelName == 'lstm':
             tokenizer = AutoTokenizer.from_pretrained('distilbert-base-uncased')
             model = LSTMTagger(128, 64, 2, tokenizer.vocab_size, num_labels)
+
         return tokenizer, model
