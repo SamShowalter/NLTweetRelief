@@ -70,6 +70,10 @@ def create_validation_preds(tokenizer, model, data,
                                           list(label)[:max_len] for label, length
                                           in zip(labels, tokenized["length"])]).to(device)
 
+            print(input_ids.shape, labels_tensor.shape)
+            input_ids = input_ids.reshape(1,input_ids.shape[0])
+            attention_mask = attention_mask.reshape(1, attention_mask.shape[0])
+            print(input_ids.shape, labels_tensor.shape)
             outputs = model(input_ids, attention_mask=attention_mask, labels=labels_tensor)
             preds = outputs.logits.max(axis=-1)[1]
             # print(preds)
@@ -84,7 +88,7 @@ def create_validation_preds(tokenizer, model, data,
 
 
 def read_in_loader_tok_model(path,
-                  root ='/extra/datalab_scratch0/showrobl/models/',
+                  root ='/extra/datalab_scratch0/showrobl/models/multilabel/',
                   ):
     """Read in model from filepath
 
