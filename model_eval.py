@@ -150,28 +150,26 @@ def bootstrap_multilabel_perf(path,
 #################################################################################
 
 if __name__ == "__main__":
-    ROOT = '/extra/datalab_scratch0/showrobl/models/'
-    ce = bootstrap_multilabel_perf('distilbert3/',
-                                   'Test_Distilbert3',
-                                   num_batches = 32,
-                                   trials = 50,
-                                   dataset = "dev")
+    ROOT = '/extra/datalab_scratch0/showrobl/models/multilabel/dis'
 
-    with open('artifacts/distilbert_all_perf_dev_t50_b32.pkl','wb') as file:
-        pkl.dump(ce.perf_dict, file)
+    trials = 1
+    num_batches = 30
+    paths = ['distilbert-base-uncased',]
+    datas = ['dev','test']
+    for d in datas:
+        for p in paths:
+            ce = bootstrap_multilabel_perf(p,
+                                   '{}_{}'.format(p,d),
+                                   num_batches = num_batches,
+                                   trials = trials,
+                                   dataset = d)
 
-    # loader, tokenizer, model = read_in_loader_tok_model('distilbert3/',
-    #                                                     root = ROOT + 'multilabel/')
-    # ce = CrisisEvaluator(loader)
-    # data = loader.next_epoch(num_batches=100,
-    #                             batch_size =32,
-    #                             simulate = True,
-    #                             dataset = "test")
+            print(ce.per_dict)
+            sys.exit(1)
+            # with open('artifacts/distilbert_all_perf_{}_t{}_b{}.pkl'
+            #           .format(d,trials,num_batches),'wb') as file:
+            #     pkl.dump(ce.perf_dict, file)
 
-    # preds = create_validation_preds(tokenizer, model,data)
-    # print(preds[:100])
-    # ce.get_perf("Test", preds, data, kind="macro")
-    # print(ce.perf_dict)
 
 
 
