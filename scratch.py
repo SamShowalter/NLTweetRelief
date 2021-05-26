@@ -1,5 +1,8 @@
 import numpy as np
+import itertools
 
-s = [(1,2),(2,3),(3,4)]
+a = [[1,2,3],[1,2,3]]
 
-print(list(zip(*s)))
+print(list(itertools.chain.from_iterable(a)))
+
+print(a + a + [])
