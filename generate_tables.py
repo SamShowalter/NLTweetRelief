@@ -241,10 +241,18 @@ def make_per_crisis_table(filepaths):
             avg_std[::2,:] = avg
             avg_std[1::2,:] = std
             df = pd.DataFrame(avg_std, columns = mets)
+            df['year'] = year
+            for m in mets:
+                df.loc[range(0,df.shape[0],2),m] = (df['{}'.format(m)]*100).round(2)
+                df.loc[range(1,df.shape[0],2),m] = "(" + (df['{}'.format(m)]*100).round(2).astype(str) + ")"
+
             df['ind'] = ind
             df = df.set_index('ind')
-            df['year'] = year
-            # df = df.sort_values(by = ['year','F1'])
+            reo = list(df.columns)
+            reo.remove('year')
+
+            df = df.reindex(columns = ['year'] + reo)
+            # df = df.sort_values(by = ['year'])
 
 
             if df.shape[0] > 15:
