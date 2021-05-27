@@ -53,50 +53,50 @@ class CrisisEvaluator(object):
                      'accuracy':accuracy_score,
                      'F1':f1_score}
 
-    def get_per_label_perf(self,
-                           experiment_name,
-                           pred_batches, data_batches,
-                           kind = 'macro'):
-        """Get per label performance
+    #def get_per_label_perf(self,
+    #                       experiment_name,
+    #                       pred_batches, data_batches,
+    #                       kind = 'macro'):
+    #    """Get per label performance
 
-        :experiment_name: Name of experiment
-        :pred_batches: Batches of only predictions
-        :data_batches: original batches
+    #    :experiment_name: Name of experiment
+    #    :pred_batches: Batches of only predictions
+    #    :data_batches: original batches
 
-        TODO: Fix this!
+    #    TODO: Fix this!
 
-        """
+    #    """
 
-        if not self.perf_dict.get(experiment_name):
-            self.perf_dict[experiment_name] = {}
-        if not self.perf_dict[experiment_name].get("per_label"):
-            self.perf_dict[experiment_name]['per_label'] = {}
-        if not self.perf_dict[experiment_name]["per_label"].get(kind):
-            self.perf_dict[experiment_name]['per_label'][kind] = {}
+    #    if not self.perf_dict.get(experiment_name):
+    #        self.perf_dict[experiment_name] = {}
+    #    if not self.perf_dict[experiment_name].get("per_label"):
+    #        self.perf_dict[experiment_name]['per_label'] = {}
+    #    if not self.perf_dict[experiment_name]["per_label"].get(kind):
+    #        self.perf_dict[experiment_name]['per_label'][kind] = {}
 
-        preds = np.array(list(itertools.chain.from_iterable(pred_batches)))
-        labels_isolated = [b[1] for b in data_batches]
-        labels_flattened = itertools.chain.from_iterable(labels_isolated)
-        labels = np.array(list(itertools.chain.from_iterable(labels_flattened)))
+    #    preds = np.array(list(itertools.chain.from_iterable(pred_batches)))
+    #    labels_isolated = [b[1] for b in data_batches]
+    #    labels_flattened = itertools.chain.from_iterable(labels_isolated)
+    #    labels = np.array(list(itertools.chain.from_iterable(labels_flattened)))
 
-        #Isolate crisis names and iterate to get performance
-        l_names = self.label_le.inverse_transform(range(0,self.num_labels))
-        for l in range(self.num_labels):
-            self.perf_dict[experiment_name]['per_label'][kind][l_names[l]] = {}
-            label_mask = (labels == l)
+    #    #Isolate crisis names and iterate to get performance
+    #    l_names = self.label_le.inverse_transform(range(0,self.num_labels))
+    #    for l in range(self.num_labels):
+    #        self.perf_dict[experiment_name]['per_label'][kind][l_names[l]] = {}
+    #        label_mask = np.ma.mask_or((labels == l), (preds == l))
 
-            label_preds = preds[label_mask]
-            label_labels = labels[label_mask]
+    #        label_preds = preds[label_mask]
+    #        label_labels = labels[label_mask]
 
-            for key,metric in self.mets.items():
-                if key in ['accuracy','confusion_matrix']:
-                    if key == 'accuracy':
-                        self.perf_dict[experiment_name]['per_label'][kind][l_names[l]][key]\
-                            = metric(label_labels, label_preds)
-                else:
-                    self.perf_dict[experiment_name]['per_label'][kind][l_names[l]][key]\
-                        = metric(label_labels, label_preds,
-                                average = kind)
+    #        for key,metric in self.mets.items():
+    #            if key in ['accuracy','confusion_matrix']:
+    #                if key == 'accuracy':
+    #                    self.perf_dict[experiment_name]['per_label'][kind][l_names[l]][key]\
+    #                        = metric(label_labels, label_preds)
+    #            else:
+    #                self.perf_dict[experiment_name]['per_label'][kind][l_names[l]][key]\
+    #                    = metric(label_labels, label_preds,
+    #                            average = kind)
 
     def get_perf(self,
                 experiment_name,
@@ -112,8 +112,11 @@ class CrisisEvaluator(object):
 
         if not self.perf_dict.get(experiment_name):
             self.perf_dict[experiment_name] = {}
-        if not self.perf_dict[experiment_name].get(kind):
+        if not self.perf_dict[experiment_name]:
+            self.perf_dict[experiment_name]['per_label'] = {}
+        if not self.perf_dict[experiment_name].get(kind) and kind != None:
             self.perf_dict[experiment_name][kind] = {}
+
 
         preds = np.array(list(itertools.chain.from_iterable(pred_batches)))
         labels_isolated = [b[1] for b in data_batches]
@@ -121,13 +124,20 @@ class CrisisEvaluator(object):
         labels = np.array(list(itertools.chain.from_iterable(labels_flattened)))
 
         for key,metric in self.mets.items():
-            if key in ['accuracy','confusion_matrix']:
+            if key in ['accuracy','confusion_matrix'] and kind != None:
                 self.perf_dict[experiment_name][kind][key]\
                     = metric(labels,preds)
-            else:
-                self.perf_dict[experiment_name][kind][key]\
-                    = metric(labels, preds,
+            elif key not in ['accuracy', 'confusion_matrix']:
+                if kind == None:
+                    self.perf_dict[experiment_name]['per_label'][key]\
+                        = metric(labels, preds,
+                                average = kind)
+
+                else:
+                    self.perf_dict[experiment_name][kind][key]\
+                        = metric(labels, preds,
                             average = kind)
+
 
     def get_per_crisis_perf(self,
                 experiment_name,

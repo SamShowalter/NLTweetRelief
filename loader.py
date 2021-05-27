@@ -46,6 +46,7 @@ class Loader(object):
         """Get data source locations and read in files"""
         self.train_path = train_path
         self.test_path = test_path
+        np.random.seed(random_seed)
 
         self.train_dirs = glob(self.train_path + "*/*.tsv" )
         self.test_dirs = glob(self.test_path + "*/*.tsv" )
@@ -260,28 +261,27 @@ class Loader(object):
                   data is shuffled
         """
 
-        if self.unilabel_df is None:
-            corpus = self.train_corpus
-            if dataset == "dev":
-                corpus = self.dev_corpus
-            if dataset == "test":
-                corpus = self.test_corpus
-            train_samples = corpus['tweet_text']\
-                    .apply(lambda x: self.tokenize(x)).reset_index(drop = True)
+        corpus = self.train_corpus
+        if dataset == "dev":
+            corpus = self.dev_corpus
+        if dataset == "test":
+            corpus = self.test_corpus
+        train_samples = corpus['tweet_text']\
+                .apply(lambda x: self.tokenize(x)).reset_index(drop = True)
 
-            train_labels_sentence = pd.DataFrame(self.label_le\
-                                                .transform(corpus['class_label']),
-                                                columns = ['label'])
+        train_labels_sentence = pd.DataFrame(self.label_le\
+                                            .transform(corpus['class_label']),
+                                            columns = ['label'])
 
-            train_labels_sentence['sample_len'] = train_samples\
-                .apply(lambda s: len(s)).reset_index(drop=True)
+        train_labels_sentence['sample_len'] = train_samples\
+            .apply(lambda s: len(s)).reset_index(drop=True)
 
-            token_labels = train_labels_sentence\
-                    .apply(lambda row: (np.ones(row['sample_len'])*row['label']).astype(int), axis = 1)
+        token_labels = train_labels_sentence\
+                .apply(lambda row: (np.ones(row['sample_len'])*row['label']).astype(int), axis = 1)
 
-            # print(train_samples)
-            # print(token_labels)
-            self.unilabel_df = pd.concat([train_samples, token_labels], axis =1)
+        # print(train_samples)
+        # print(token_labels)
+        self.unilabel_df = pd.concat([train_samples, token_labels], axis =1)
 
         shuffled_df = list(zip(*self.unilabel_df.sample(frac = 1).values.tolist()))
 
@@ -321,7 +321,7 @@ if __name__ == "__main__":
     l.load_files()
     print(l.train_crises)
 
-    # print(l.train_corpus.columns)
+    print(l.train_corpus.columns)
     print(l.test_corpus.shape)
     print(l.train_corpus.shape)
     print(l.dev_corpus.shape)

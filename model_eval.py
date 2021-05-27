@@ -31,6 +31,7 @@ from evaluator import CrisisEvaluator
 
 def create_validation_preds(tokenizer, model, data,
                             verbose = True,
+                            demo = False,
                             path = None):
     """Create evaluation predictions for a pretrained
     model and return the tensors for evaluation
@@ -70,10 +71,9 @@ def create_validation_preds(tokenizer, model, data,
                                           list(label)[:max_len] for label, length
                                           in zip(labels, tokenized["length"])]).to(device)
 
-            print(input_ids.shape, labels_tensor.shape)
-            input_ids = input_ids.reshape(1,input_ids.shape[0])
-            attention_mask = attention_mask.reshape(1, attention_mask.shape[0])
-            print(input_ids.shape, labels_tensor.shape)
+            if demo:
+                input_ids = input_ids.reshape(1,input_ids.shape[0])
+                attention_mask = attention_mask.reshape(1, attention_mask.shape[0])
             outputs = model(input_ids, attention_mask=attention_mask, labels=labels_tensor)
             preds = outputs.logits.max(axis=-1)[1]
             # print(preds)
@@ -110,7 +110,7 @@ def bootstrap_multilabel_perf(path,
                               num_batches= 100,
                               batch_size =32,
                               dataset = "dev",
-                              kinds = ["weighted","micro","macro"],
+                              kinds = [None, "weighted","micro","macro"],
                               verbose = True,
                               root = '/extra/datalab_scratch0/showrobl/models/multilabel/'):
     """Boostrap performance for multilabel classification
@@ -137,23 +137,24 @@ def bootstrap_multilabel_perf(path,
 
         for k in kinds:
 
-            # Overall metrics
+            # Overall metrics, also gets per label
             ce.get_perf(experiment_name + "_{}".format(t),
                     preds,
                     data,
                     kind= k)
 
-            # Per label metrics
-            ce.get_per_label_perf(experiment_name + "_{}".format(t),
-                    preds,
-                    data,
-                    kind= k)
+            # # Per label metrics
+            # ce.get_per_label_perf(experiment_name + "_{}".format(t),
+            #         preds,
+            #         data,
+            #         kind= k)
 
-            # Per crisis metrics
-            ce.get_per_crisis_perf(experiment_name + "_{}".format(t),
-                    preds,
-                    data,
-                    kind= k)
+            if k:
+                # Per crisis metrics
+                ce.get_per_crisis_perf(experiment_name + "_{}".format(t),
+                        preds,
+                        data,
+                        kind= k)
 
     return ce
 
@@ -164,24 +165,25 @@ def bootstrap_multilabel_perf(path,
 #   Main
 #################################################################################
 
-# if __name__ == "__main__":
-#     ROOT = '/extra/datalab_scratch0/showrobl/models/multilabel/dis'
-#     trials = 100
-#     num_batches = 30
-#     paths = ['distilroberta-base','distilbert-base-uncased','lstm']
-#     datas = ['dev','test']
-#     for d in datas:
-#         for p in paths:
-#             print(p, d)
-#             ce = bootstrap_multilabel_perf(p,
-#                                    '{}_{}'.format(p,d),
-#                                    num_batches = num_batches,
-#                                    trials = trials,
-#                                    dataset = d)
-#             # Save files by model and data type
-#             with open('artifacts/{}_all_perf_{}_t{}_b{}.pkl'
-#                       .format(p.replace("/","").split("-")[0],d,trials,num_batches),'wb') as file:
-#                 pkl.dump(ce.perf_dict, file)
+if __name__ == "__main__":
+    ROOT = '/extra/datalab_scratch0/showrobl/models/multilabel/'
+    trials = 100
+    num_batches = 30
+    paths = ['distilroberta-base','distilbert-base-uncased','lstm']
+    datas = ['dev','test']
+    for d in datas:
+        for p in paths:
+            print(p, d)
+            ce = bootstrap_multilabel_perf(p,
+                                   '{}_{}'.format(p,d),
+                                   num_batches = num_batches,
+                                   trials = trials,
+                                   dataset = d)
+
+            # Save files by model and data type
+            with open('artifacts/{}_all_perf_{}_t{}_b{}.pkl'
+                      .format(p.replace("/","").split("-")[0],d,trials,num_batches),'wb') as file:
+                pkl.dump(ce.perf_dict, file)
 
 
 
