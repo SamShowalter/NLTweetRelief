@@ -325,6 +325,7 @@ if __name__ == "__main__":
     print(l.test_corpus.shape)
     print(l.train_corpus.shape)
     print(l.dev_corpus.shape)
+    print(l.crisis_le.classes_)
 
 #     for k in l.train_dict.keys():
 #         print("Train then dev shapes")
