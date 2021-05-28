@@ -327,6 +327,7 @@ if __name__ == "__main__":
     print(l.dev_corpus.shape)
     print(l.test_crises)
     print(l.train_crises)
+    assert len(set(l.train_crises) & set(l.test_crises)) == 0, "ERROR: Bleed from train to test set"
 
 #     for k in l.train_dict.keys():
 #         print("Train then dev shapes")
