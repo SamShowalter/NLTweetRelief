@@ -35,8 +35,8 @@ class Loader(object):
     """
 
     def __init__(self,
-                 train_path = "data/preq_2018/",
-                 test_path = "data/post_2018/",
+                 train_path = "data/train_val/",
+                 test_path = "data/test/",
                  co_occ_range = [2,6],
                  tokenizer = CountVectorizer().build_tokenizer(),
                  val_split = 0.2,
@@ -319,13 +319,14 @@ class Loader(object):
 if __name__ == "__main__":
     l = Loader()
     l.load_files()
-    print(l.train_crises)
+    # print(l.train_crises)
 
-    print(l.train_corpus.columns)
+    # print(l.train_corpus.columns)
     print(l.test_corpus.shape)
     print(l.train_corpus.shape)
     print(l.dev_corpus.shape)
     print(l.test_crises)
+    print(l.train_crises)
 
 #     for k in l.train_dict.keys():
 #         print("Train then dev shapes")
