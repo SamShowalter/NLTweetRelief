@@ -225,7 +225,7 @@ def make_per_crisis_table(filepaths):
 
 
             avg = pd.DataFrame(avg_dict).T
-            avg = avg[(~avg['accuracy'].isnull()) & (avg.index !='cyclone_idai_2019')]
+            avg = avg[(~avg['accuracy'].isnull())]
             raw_ind = avg.index.tolist()
             avg = avg.to_numpy()
             ind = list(itertools.chain.from_iterable([[c[:-5],""] for c in raw_ind]))
@@ -233,7 +233,7 @@ def make_per_crisis_table(filepaths):
             year = list(itertools.chain.from_iterable([[c.split("_")[-1]]*2 for c in raw_ind]))
             print(year)
             std = pd.DataFrame(std_dict).T
-            std = std[(~std['accuracy'].isnull()) & (std.index !='cyclone_idai_2019')].to_numpy()
+            std = std[(~std['accuracy'].isnull())]
 
             avg_std = np.empty((avg.shape[0]+std.shape[0],
                                     avg.shape[1]))
@@ -256,8 +256,9 @@ def make_per_crisis_table(filepaths):
 
 
             if df.shape[0] > 15:
-                with open('artifacts/dev_crisis_perf.tex', 'w') as tf:
-                    tf.write(df.to_latex())
+                pass
+                # with open('artifacts/dev_crisis_perf.tex', 'w') as tf:
+                #     tf.write(df.to_latex())
             else:
                 with open('artifacts/test_crisis_perf.tex', 'w') as tf:
                     tf.write(df.to_latex())
