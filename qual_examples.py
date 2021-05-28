@@ -69,7 +69,7 @@ def qual_example(filepath,
 if __name__ == "__main__":
 
     # # loader, tokenizer, model = read_in_loader_tok_model('distilbert-base-uncased')
-    path ='distilbert-base-uncased'
+    path ='distilroberta-base'
     loader, tokenizer, model = read_in_loader_tok_model(path)
 
     # sample ="Our hearts go out to those affected by the fire that has injured 12 citizens. Several people are still missing and we will begin a search."
@@ -88,7 +88,7 @@ if __name__ == "__main__":
         tag = f.split("/")[-1].split(".")[0]
         print(tag)
         res_dict[tag] = {}
-        token, preds = qual_example(files[0], tokenizer, model, path = path,toks = toks)
+        token, preds = qual_example(f, tokenizer, model, path = path,toks = toks)
         res_dict[tag]['tokens'] = token
         res_dict[tag]['preds'] = preds
 
