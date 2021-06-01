@@ -166,7 +166,7 @@ def bootstrap_multilabel_perf(path,
 #################################################################################
 
 if __name__ == "__main__":
-    ROOT = '/extra/datalab_scratch0/showrobl/models/multilabel/'
+    ROOT = '/extra/datalab_scratch0/showrobl/models/multilabel_new/'
     trials = 100
     num_batches = 30
     paths = ['distilroberta-base','distilbert-base-uncased','lstm']
@@ -178,10 +178,12 @@ if __name__ == "__main__":
                                    '{}_{}'.format(p,d),
                                    num_batches = num_batches,
                                    trials = trials,
-                                   dataset = d)
+                                   dataset = d,
+                                   root = ROOT)
+            # print(ce.perf_dict)
 
             # Save files by model and data type
-            with open('artifacts/{}_all_perf_{}_t{}_b{}.pkl'
+            with open('artifacts/{}_all_perf2_{}_t{}_b{}.pkl'
                       .format(p.replace("/","").split("-")[0],d,trials,num_batches),'wb') as file:
                 pkl.dump(ce.perf_dict, file)
 
