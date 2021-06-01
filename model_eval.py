@@ -170,7 +170,7 @@ if __name__ == "__main__":
     trials = 100
     num_batches = 30
     paths = ['distilroberta-base','distilbert-base-uncased','lstm']
-    datas = ['dev','test']
+    datas = ['test']
     for d in datas:
         for p in paths:
             print(p, d)

@@ -32,6 +32,7 @@ def make_perf_table(filepaths):
     """
     started = False
     filepaths.sort()
+    print(filepaths)
     for i in range(0, len(filepaths), 2):
         path_dev = filepaths[i]
         path_test = filepaths[i+1]
@@ -85,7 +86,7 @@ def make_perf_table(filepaths):
     print(tdf.columns)
     tdf = tdf.set_index(model)
     print(tdf.index)
-    with open('artifacts/overall_perf.tex', 'w') as tf:
+    with open('artifacts/overall_perf2.tex', 'w') as tf:
         tf.write(tdf.to_latex())
 
 
@@ -117,23 +118,23 @@ def make_per_label_perf(filepaths):
                 pd.Series(data[k]['per_label']).values.tolist(),
             index= None).T.to_numpy())
 
+        datas = [d for d in datas if d.shape[0] == 10]
         avg_data = np.array(datas).mean(axis =0)
         std_data = np.array(datas).std(axis = 0)
         avg_std_data = np.empty((avg_data.shape[0]+std_data.shape[0],
                                  avg_data.shape[1]))
+        # print(avg_std_data)
 
         avg_std_data[::2,:] = avg_data
         avg_std_data[1::2,:] = std_data
 
-
-
         # Get percent composition of the labels
         cms = np.array([data[k]['weighted']['confusion_matrix'].sum(axis = 0)/data[k]['weighted']['confusion_matrix'].sum()
-               for k in data.keys()])
+               for k in data.keys() if data[k]['weighted']['confusion_matrix'].shape[0] == 10])
+
         avg_cm = cms.mean(axis  = 0)
         std_cm = cms.std(axis  = 0)
         avg_std_cm = np.empty(avg_cm.shape[0]+std_cm.shape[0])
-
         avg_std_cm[::2,] = avg_cm
         avg_std_cm[1::2] = std_cm
         np.set_printoptions(precision = None, suppress = True)
@@ -156,6 +157,7 @@ def make_per_label_perf(filepaths):
     tdf = tdf.astype(float)
     # tdf = tdf.round(2)
     # tdf[:,tdf.columns != 'type'] =tdf[:,tdf.columns != 'type'].astype(float)
+    print("HI")
     for m in mets:
         tdf.loc[range(0,20,2),m] = tdf['dev_{}'.format(m)].round(2).astype(str) + " / " + tdf['test_{}'.format(m)].round(2).astype(str).astype(str)
         tdf.loc[range(1,20,2),m] = "(" + tdf['dev_{}'.format(m)].round(2).astype(str) + ") / (" + tdf['test_{}'.format(m)].round(2).astype(str).astype(str) + ")"
@@ -174,7 +176,7 @@ def make_per_label_perf(filepaths):
     tdf['label'] = broad_labels
     tdf = tdf.set_index('label')
     print(tdf.head())
-    with open('artifacts/per_label_perf.tex', 'w') as tf:
+    with open('artifacts/per_label_perf2.tex', 'w') as tf:
         tf.write(tdf.to_latex())
 
 
@@ -260,7 +262,7 @@ def make_per_crisis_table(filepaths):
                 # with open('artifacts/dev_crisis_perf.tex', 'w') as tf:
                 #     tf.write(df.to_latex())
             else:
-                with open('artifacts/test_crisis_perf.tex', 'w') as tf:
+                with open('artifacts/test_crisis_perf2.tex', 'w') as tf:
                     tf.write(df.to_latex())
 
 
@@ -279,11 +281,11 @@ def read_pkl(filepath,
 
 if __name__ == "__main__":
     root = 'artifacts/'
-    files = glob(root + '*t100*.pkl')
+    files = glob(root + '*perf2*t100*.pkl')
     # print(files)
     # make_perf_table(files)
-    # make_per_label_perf(files)
-    make_per_crisis_table(files)
+    make_per_label_perf(files)
+    # make_per_crisis_table(files)
     # dic = read_pkl('
 
 
