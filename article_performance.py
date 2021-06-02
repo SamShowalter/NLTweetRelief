@@ -40,14 +40,42 @@ def combine_perf_metrics_by_crisis(crisis_dict,
                                    tok_mets = [],
                                    seq_mets = []):
 
-    seq_weights = []
-    tok_weights = []
+    perf_dict = {}
     for c in crisis_dict.keys():
-        seq_weights.append(crisis_dict[c]['num_sequences'])
-        tok_weights.append(crisis_dict[c]['num_tokens'])
+        print(c)
+        perf_dict[c] = {}
+        seq_weights = []
+        labels = []
+        preds = []
+        for crisis in crisis_dict[c].keys():
+            seq_weights.append(crisis_dict[c][crisis]['num_sequences'])
+            preds.append(crisis_dict[c][crisis]['all_preds'])
+            labels.append(crisis_dict[c][crisis]['all_labels'])
 
-    seq_weights = np.array(seq_weights)/sum(seq_weights)
-    tok_weights = np.array(tok_weights)/sum(tok_weights)
+
+        keys = crisis_dict[c].keys()
+        seq_weights = np.array(seq_weights)/sum(seq_weights)
+        perf_dict[c]['1p_label_perc'] = (np.array([crisis_dict[c][k]['1p_label_perc'] for k in keys])*seq_weights).sum()
+        perf_dict[c]['partially_correct_seq_perc'] = (np.array([crisis_dict[c][k]['partially_correct_seq_perc'] for k in keys])*seq_weights).sum()
+        perf_dict[c]['totally_correct_seq_perc'] = (np.array([crisis_dict[c][k]['totally_correct_seq_perc'] for k in keys])*seq_weights).sum()
+        perf_dict[c]['mean_cont_seq_len'] = (np.array([crisis_dict[c][k]['mean_cont_seq_len'] for k in keys])*seq_weights).sum()
+        print(perf_dict[c]['1p_label_perc'])
+        print(perf_dict[c]['partially_correct_seq_perc'])
+        print(perf_dict[c]['totally_correct_seq_perc'])
+        # print(perf_dict[c]['mean_cont_seq_len'])
+
+        all_labels = list(itertools.chain.from_iterable(labels))
+        all_preds = list(itertools.chain.from_iterable(preds))
+        perf_dict[c]['confusion_matrix'] = confusion_matrix(all_labels, all_preds)
+        cm = perf_dict[c]['confusion_matrix']
+        total_preds = cm.sum(axis = 1)
+        # print(total_preds)
+        # print(cm)
+        perf_dict[c]['confusion_matrix_perc_pred'] = np.round(cm.T/total_preds).T*100,2)
+        perf_dict[c]['support'] = len(all_preds)
+
+
+
 
 
 def get_article_performance(res_dict):
@@ -63,6 +91,7 @@ def get_article_performance(res_dict):
     """
     perf_dict = {}
     for k in res_dict.keys():
+        # print(k)
         preds  = [np.array(r) for r in res_dict[k][0]]
         labels = [np.array(r) for r in res_dict[k][1]]
         perf_dict[k] = {}
@@ -82,8 +111,19 @@ def get_article_performance(res_dict):
         perf_dict[k]['mean_cont_seq_len'] = np.array(cont_seq_nums).mean()
         perf_dict[k]['all_labels'] = list(itertools.chain.from_iterable(labels))
         perf_dict[k]['all_preds'] = list(itertools.chain.from_iterable(preds))
+        # print((np.array(perf_dict[k]['all_labels']) == 4).sum())
 
-        print(np.array(cont_seq_nums).mean())
+        # print(np.array(cont_seq_nums).mean())
+
+    crisis_dict = {"hurricane_dorian":{}}
+
+    for p in perf_dict.keys():
+        if "can_wfire" not in p:
+            # print(p)
+            crisis_dict['hurricane_dorian'][p] = perf_dict[p]
+
+    return crisis_dict
+
 
 
 
@@ -118,7 +158,8 @@ def read_pkl(filepath,
 
 if __name__ == "__main__":
     samples = read_pkl('sams_articles_preds_golds.pkl')
-    get_article_performance(samples)
+    crisis_dict =  get_article_performance(samples)
+    combine_perf_metrics_by_crisis(crisis_dict)
 
 
     # print(samples.keys())
