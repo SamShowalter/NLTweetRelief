@@ -17,7 +17,7 @@ import pandas as pd
 import numpy as np
 import pickle as pkl
 import itertools
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix, precision_score, recall_score, f1_score
 
 #################################################################################
 #   Function-Class Declaration
@@ -54,25 +54,46 @@ def combine_perf_metrics_by_crisis(crisis_dict,
 
 
         keys = crisis_dict[c].keys()
+        raw_seq_weights = seq_weights
         seq_weights = np.array(seq_weights)/sum(seq_weights)
-        perf_dict[c]['1p_label_perc'] = (np.array([crisis_dict[c][k]['1p_label_perc'] for k in keys])*seq_weights).sum()
-        perf_dict[c]['partially_correct_seq_perc'] = (np.array([crisis_dict[c][k]['partially_correct_seq_perc'] for k in keys])*seq_weights).sum()
-        perf_dict[c]['totally_correct_seq_perc'] = (np.array([crisis_dict[c][k]['totally_correct_seq_perc'] for k in keys])*seq_weights).sum()
-        perf_dict[c]['mean_cont_seq_len'] = (np.array([crisis_dict[c][k]['mean_cont_seq_len'] for k in keys])*seq_weights).sum()
-        print(perf_dict[c]['1p_label_perc'])
-        print(perf_dict[c]['partially_correct_seq_perc'])
-        print(perf_dict[c]['totally_correct_seq_perc'])
-        # print(perf_dict[c]['mean_cont_seq_len'])
-
         all_labels = list(itertools.chain.from_iterable(labels))
         all_preds = list(itertools.chain.from_iterable(preds))
+        perf_dict[c]['Precision'] = precision_score(all_labels, all_preds, average = 'weighted')
+        # print(perf_dict[c]['Precision'])
+        perf_dict[c]['Recall'] = recall_score(all_labels, all_preds, average = 'weighted')
+        perf_dict[c]['F1'] = f1_score(all_labels, all_preds, average = 'weighted')
+        perf_dict[c]['>1 Tag Seq. %'] = (np.array([crisis_dict[c][k]['1p_label_perc'] for k in keys])*seq_weights).sum()
+        perf_dict[c]['Part. Seq. Acc.'] = (np.array([crisis_dict[c][k]['partially_correct_seq_perc'] for k in keys])*seq_weights).sum()
+        perf_dict[c]['Tot. Seq. Acc.'] = (np.array([crisis_dict[c][k]['totally_correct_seq_perc'] for k in keys])*seq_weights).sum()
+        perf_dict[c]['Tag Streak'] = (np.array([crisis_dict[c][k]['mean_cont_seq_len'] for k in keys])*seq_weights).sum()
+        # perf_dict[c]['Seq. Len.'] = len(all_preds)/sum(raw_seq_weights)
+        # print(perf_dict[c]['Seq. Len.'])
+        # print(perf_dict[c]['mean_cont_seq_len'])
+
         perf_dict[c]['confusion_matrix'] = confusion_matrix(all_labels, all_preds)
         cm = perf_dict[c]['confusion_matrix']
         total_preds = cm.sum(axis = 1)
         # print(total_preds)
         # print(cm)
-        perf_dict[c]['confusion_matrix_perc_pred'] = np.round(cm.T/total_preds).T*100,2)
-        perf_dict[c]['support'] = len(all_preds)
+        # cm = np.round((cm.T/total_preds).T*100,1)
+        # print(cm)
+        perf_dict[c]['# Tokens'] = len(all_preds)
+
+    cm = np.stack([perf_dict[c]['confusion_matrix'] for c in crisis_dict.keys()]).sum(axis = 0)
+    cmdf = pd.DataFrame(cm)
+
+    with open('artifacts/articles_conf_mat.tex', 'w') as tf:
+        tf.write(cmdf.to_latex())
+
+    df = pd.DataFrame(perf_dict).T
+
+
+    with open('artifacts/article_perf_per_crisis.tex', 'w') as tf:
+        tf.write(df.to_latex())
+    # The cols are precision, recall, f1, lp_label_perc, partially_correct_seq_perc, totally_correct_seq_perc, support
+
+    # Put confusion matrix for ALL crises in the appendix
+    # Also put label encoder in appendix DONE
 
 
 

@@ -157,10 +157,11 @@ def make_per_label_perf(filepaths):
     tdf = tdf.astype(float)
     # tdf = tdf.round(2)
     # tdf[:,tdf.columns != 'type'] =tdf[:,tdf.columns != 'type'].astype(float)
-    print("HI")
     for m in mets:
-        tdf.loc[range(0,20,2),m] = tdf['dev_{}'.format(m)].round(2).astype(str) + " / " + tdf['test_{}'.format(m)].round(2).astype(str).astype(str)
-        tdf.loc[range(1,20,2),m] = "(" + tdf['dev_{}'.format(m)].round(2).astype(str) + ") / (" + tdf['test_{}'.format(m)].round(2).astype(str).astype(str) + ")"
+        # tdf.loc[range(0,20,2),m] = tdf['dev_{}'.format(m)].round(2).astype(str) + " / " + tdf['test_{}'.format(m)].round(2).astype(str).astype(str)
+        # tdf.loc[range(1,20,2),m] = "(" + tdf['dev_{}'.format(m)].round(2).astype(str) + ") / (" + tdf['test_{}'.format(m)].round(2).astype(str).astype(str) + ")"
+        tdf.loc[range(0,20,2),m] = tdf['test_{}'.format(m)].round(2).astype(str)
+        tdf.loc[range(1,20,2),m] = "("+ tdf['test_{}'.format(m)].round(2).astype(str).astype(str) + ")"
         tdf.drop(['dev_{}'.format(m),'test_{}'.format(m)], axis = 1, inplace = True)
 
     # print(tdf.columns)
@@ -176,7 +177,7 @@ def make_per_label_perf(filepaths):
     tdf['label'] = broad_labels
     tdf = tdf.set_index('label')
     print(tdf.head())
-    with open('artifacts/per_label_perf2.tex', 'w') as tf:
+    with open('artifacts/per_label_perf_slim.tex', 'w') as tf:
         tf.write(tdf.to_latex())
 
 
