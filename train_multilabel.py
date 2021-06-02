@@ -8,7 +8,7 @@ import sys
 
 model_name = sys.argv[1]
 
-def train_model(tokenizer, model, n_epochs=1000):
+def train_model(tokenizer, model, n_epochs=4000):
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     model.to(device)
     model.train()
@@ -26,14 +26,14 @@ def train_model(tokenizer, model, n_epochs=1000):
         print(epoch_i)
         n_res = 0
         sum_res = 0
-        for epoch in l.next_epoch(batch_size=16, simulate=True):
+        for epoch in l.next_epoch(batch_size=4, simulate=True):
             batch = epoch[0]
             labels = epoch[1]
             optim.zero_grad()
             tokenized = tokenizer(list(batch), padding=True, truncation=True, is_split_into_words=True, return_length=True, max_length=max_len)
             input_ids = torch.tensor(tokenized["input_ids"]).to(device)
             attention_mask = torch.tensor(tokenized["attention_mask"]).to(device)
-            labels_tensor = torch.tensor([list(label) + [-100]*(length - len(label)) if len(label) <= max_len else list(label)[:max_len] for label, length in zip(labels, tokenized["length"])]).to(device)
+            labels_tensor = torch.tensor([list(label) + [-100]*(length - len(label)) if (max_len is None) or (len(label) <= max_len)  else list(label)[:max_len] for label, length in zip(labels, tokenized["length"])]).to(device)
             outputs = model(input_ids, attention_mask=attention_mask, labels=labels_tensor)
             logits = outputs.logits.detach().max(axis=-1)[1]
             mask = labels_tensor != -100
@@ -44,10 +44,15 @@ def train_model(tokenizer, model, n_epochs=1000):
             optim.step()
 
         if epoch_i % 50 == 0:
+            del input_ids
+            del attention_mask
+            del labels_tensor
+            del outputs
+            del logits
+            del mask
+            torch.cuda.empty_cache()
             model.save_pretrained("models/multilabel/%s" % model_name)
             model.eval()
-            print(labels_tensor)
-            print(logits)
             train2_acc, dev_acc = benchmark(tokenizer, model, l)
             model.train()
 
@@ -68,7 +73,7 @@ def benchmark(tokenizer, model, loader):
 
     n_res = 0
     sum_res = 0
-    for batch, labels,crises in loader.next_epoch(batch_size=16, simulate=True, dataset="train"):
+    for batch, labels,crises in loader.next_epoch(batch_size=4, simulate=True, dataset="train"):
         tokenized = tokenizer(list(batch), padding=True, is_split_into_words=True, return_length=True)
         input_ids = torch.tensor(tokenized["input_ids"]).to(device)
         attention_mask = torch.tensor(tokenized["attention_mask"]).to(device)
@@ -77,11 +82,19 @@ def benchmark(tokenizer, model, loader):
         logits = outputs.logits.max(axis=-1)[1]
         mask = labels_tensor != -100
         n_res += mask.float().sum()
-        sum_res += ((logits == labels_tensor) & mask).float().sum()
+        sum_res += ((logits == labels_tensor) & mask).detach().float().sum()
 
     train_acc = sum_res/n_res
 
     print("train_acc", train_acc)
+
+    del input_ids
+    del attention_mask
+    del labels_tensor
+    del outputs
+    del logits
+    del mask
+    torch.cuda.empty_cache()
 
     # l_dev = Loader()
 
@@ -89,7 +102,7 @@ def benchmark(tokenizer, model, loader):
 
     n_res = 0
     sum_res = 0
-    for batch, labels,crises in loader.next_epoch(batch_size=16, simulate=True, dataset="dev"):
+    for batch, labels,crises in loader.next_epoch(batch_size=4, simulate=True, dataset="dev"):
         tokenized = tokenizer(list(batch), padding=True, is_split_into_words=True, return_length=True)
         input_ids = torch.tensor(tokenized["input_ids"]).to(device)
         attention_mask = torch.tensor(tokenized["attention_mask"]).to(device)
@@ -98,9 +111,17 @@ def benchmark(tokenizer, model, loader):
         logits = outputs.logits.max(axis=-1)[1]
         mask = labels_tensor != -100
         n_res += mask.float().sum()
-        sum_res += ((logits == labels_tensor) & mask).float().sum()
+        sum_res += ((logits == labels_tensor) & mask).detach().float().sum()
 
     dev_acc = sum_res/n_res
+
+    del input_ids
+    del attention_mask
+    del labels_tensor
+    del outputs
+    del logits
+    del mask
+    torch.cuda.empty_cache()
 
     print("dev_acc", dev_acc)
     return train_acc, dev_acc

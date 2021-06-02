@@ -48,5 +48,16 @@ class TokenizerModelFactory():
         if modelName == 'lstm':
             tokenizer = AutoTokenizer.from_pretrained('distilbert-base-uncased')
             model = LSTMTagger(128, 64, 2, tokenizer.vocab_size, num_labels)
+        if modelName == 'albert-base-v2':
+            tokenizer = AutoTokenizer.from_pretrained('albert-base-v2', add_prefix_space=True)
+            model = AutoModelForTokenClassification.from_pretrained(root + "albert-base-v2", num_labels=num_labels, **kwargs)
+        if modelName == 'squeezebert/squeezebert-uncased':
+            tokenizer = AutoTokenizer.from_pretrained('squeezebert/squeezebert-uncased', add_prefix_space=True)
+            model = AutoModelForTokenClassification.from_pretrained(root + "squeezebert/squeezebert-uncased", num_labels=num_labels, **kwargs)
+        if modelName == 'xlnet-base-cased':
+            tokenizer = AutoTokenizer.from_pretrained('xlnet-base-cased', add_prefix_space=True)
+            model = AutoModelForTokenClassification.from_pretrained(root + "xlnet-base-cased", num_labels=num_labels, **kwargs)
+
+
 
         return tokenizer, model
