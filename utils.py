@@ -1,6 +1,6 @@
 #################################################################################
 #
-#             Project Title:  Utilities for Project              Class: CS272
+#             Project Title:  Utilities for Project (unused)              Class: CS272
 #             Author:         Sam Showalter
 #             Date:           2021-05-18
 #
