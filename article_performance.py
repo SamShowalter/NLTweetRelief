@@ -41,6 +41,8 @@ def combine_perf_metrics_by_crisis(crisis_dict,
                                    seq_mets = []):
 
     perf_dict = {}
+    tot_labels = []
+    tot_preds = []
     for c in crisis_dict.keys():
         print(c)
         perf_dict[c] = {}
@@ -58,6 +60,8 @@ def combine_perf_metrics_by_crisis(crisis_dict,
         seq_weights = np.array(seq_weights)/sum(seq_weights)
         all_labels = list(itertools.chain.from_iterable(labels))
         all_preds = list(itertools.chain.from_iterable(preds))
+        tot_labels = tot_labels + all_labels
+        tot_preds = tot_preds + all_preds
         perf_dict[c]['Precision'] = precision_score(all_labels, all_preds, average = 'weighted')
         # print(perf_dict[c]['Precision'])
         perf_dict[c]['Recall'] = recall_score(all_labels, all_preds, average = 'weighted')
@@ -70,16 +74,14 @@ def combine_perf_metrics_by_crisis(crisis_dict,
         # print(perf_dict[c]['Seq. Len.'])
         # print(perf_dict[c]['mean_cont_seq_len'])
 
-        perf_dict[c]['confusion_matrix'] = confusion_matrix(all_labels, all_preds)
-        cm = perf_dict[c]['confusion_matrix']
-        total_preds = cm.sum(axis = 1)
         # print(total_preds)
         # print(cm)
-        # cm = np.round((cm.T/total_preds).T*100,1)
         # print(cm)
         perf_dict[c]['# Tokens'] = len(all_preds)
 
-    cm = np.stack([perf_dict[c]['confusion_matrix'] for c in crisis_dict.keys()]).sum(axis = 0)
+    raw_cm = confusion_matrix(tot_labels, tot_preds)
+    total_preds = raw_cm.sum(axis = 1)
+    cm = np.round((raw_cm.T/total_preds).T*100,1)
     cmdf = pd.DataFrame(cm)
 
     with open('artifacts/articles_conf_mat.tex', 'w') as tf:
@@ -92,8 +94,6 @@ def combine_perf_metrics_by_crisis(crisis_dict,
         tf.write(df.to_latex())
     # The cols are precision, recall, f1, lp_label_perc, partially_correct_seq_perc, totally_correct_seq_perc, support
 
-    # Put confusion matrix for ALL crises in the appendix
-    # Also put label encoder in appendix DONE
 
 
 

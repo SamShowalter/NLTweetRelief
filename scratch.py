@@ -8,5 +8,5 @@ print(list(itertools.chain.from_iterable(a)))
 
 a = {"a":{"b":1, "c":2},
         "d":{"b":7, "c":4}}
-print(pd.DataFrame(a).T)
+print(pd.DataFrame(a))
 print(a + a + [])
