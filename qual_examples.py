@@ -82,7 +82,7 @@ if __name__ == "__main__":
     # print(sample)
     # print(preds)
     # print(loader.label_le.inverse_transform(preds[0]))
-    files = glob('data/samples/*.txt')
+    files = glob('data/samples_showalte/*.txt')
     res_dict = {}
     for f in files:
         tag = f.split("/")[-1].split(".")[0]
@@ -93,7 +93,7 @@ if __name__ == "__main__":
         res_dict[tag]['preds'] = preds
 
     res_dict['le'] = loader.label_le
-    with open('artifacts/qual_samples.pkl','wb') as file:
+    with open('artifacts/qual_samples_showalte.pkl','wb') as file:
         pkl.dump(res_dict, file)
 
 
