@@ -51,7 +51,7 @@ class TokenizerModelFactory():
         if modelName == 'albert-base-v2':
             tokenizer = AutoTokenizer.from_pretrained('albert-base-v2', add_prefix_space=True)
             model = AutoModelForTokenClassification.from_pretrained(root + "albert-base-v2", num_labels=num_labels, **kwargs)
-        if modelName == 'squeezebert/squeezebert-uncased':
+        if modelName in 'squeezebert/squeezebert-uncased':
             tokenizer = AutoTokenizer.from_pretrained('squeezebert/squeezebert-uncased', add_prefix_space=True)
             model = AutoModelForTokenClassification.from_pretrained(root + "squeezebert/squeezebert-uncased", num_labels=num_labels, **kwargs)
         if modelName == 'xlnet-base-cased':

@@ -102,7 +102,7 @@ def make_per_label_perf(filepaths):
     """
     started = False
     filepaths.sort()
-    filepaths = filepaths[2:4]
+    filepaths = filepaths[4:6]
     path_dev = filepaths[0]
     path_test = filepaths[1]
     data_row = []
@@ -259,9 +259,8 @@ def make_per_crisis_table(filepaths):
 
 
             if df.shape[0] > 15:
-                pass
-                # with open('artifacts/dev_crisis_perf.tex', 'w') as tf:
-                #     tf.write(df.to_latex())
+                with open('artifacts/dev_crisis_perf.tex', 'w') as tf:
+                    tf.write(df.to_latex())
             else:
                 with open('artifacts/test_crisis_perf2.tex', 'w') as tf:
                     tf.write(df.to_latex())
@@ -285,8 +284,8 @@ if __name__ == "__main__":
     files = glob(root + '*perf2*t100*.pkl')
     # print(files)
     # make_perf_table(files)
-    make_per_label_perf(files)
-    # make_per_crisis_table(files)
+    # make_per_label_perf(files)
+    make_per_crisis_table(files)
     # dic = read_pkl('
 
 

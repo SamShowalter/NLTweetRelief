@@ -62,16 +62,17 @@ def combine_perf_metrics_by_crisis(crisis_dict,
         all_preds = list(itertools.chain.from_iterable(preds))
         tot_labels = tot_labels + all_labels
         tot_preds = tot_preds + all_preds
-        perf_dict[c]['Precision'] = precision_score(all_labels, all_preds, average = 'weighted')
+        perf_dict[c]['Precision'] = precision_score(all_labels, all_preds, average = 'micro')
         # print(perf_dict[c]['Precision'])
-        perf_dict[c]['Recall'] = recall_score(all_labels, all_preds, average = 'weighted')
-        perf_dict[c]['F1'] = f1_score(all_labels, all_preds, average = 'weighted')
+        perf_dict[c]['Recall'] = recall_score(all_labels, all_preds, average = 'micro')
+        perf_dict[c]['F1'] = f1_score(all_labels, all_preds, average ='micro')
+
         perf_dict[c]['>1 Tag Seq. %'] = (np.array([crisis_dict[c][k]['1p_label_perc'] for k in keys])*seq_weights).sum()
         perf_dict[c]['Part. Seq. Acc.'] = (np.array([crisis_dict[c][k]['partially_correct_seq_perc'] for k in keys])*seq_weights).sum()
         perf_dict[c]['Tot. Seq. Acc.'] = (np.array([crisis_dict[c][k]['totally_correct_seq_perc'] for k in keys])*seq_weights).sum()
-        perf_dict[c]['Tag Streak'] = (np.array([crisis_dict[c][k]['mean_cont_seq_len'] for k in keys])*seq_weights).sum()
-        # perf_dict[c]['Seq. Len.'] = len(all_preds)/sum(raw_seq_weights)
-        # print(perf_dict[c]['Seq. Len.'])
+        perf_dict[c]['Tag Flips'] = (np.array([crisis_dict[c][k]['flip_count'] for k in keys])*seq_weights).sum()
+        perf_dict[c]['Cont. Seq. Len.'] = (np.array([crisis_dict[c][k]['cont_seq_mean'] for k in keys])*seq_weights).sum()
+        perf_dict[c]['Seq. Len.'] = len(all_preds)/sum(raw_seq_weights)
         # print(perf_dict[c]['mean_cont_seq_len'])
 
         # print(total_preds)
@@ -88,13 +89,15 @@ def combine_perf_metrics_by_crisis(crisis_dict,
         tf.write(cmdf.to_latex())
 
     df = pd.DataFrame(perf_dict).T
+    df = df[['Precision', 'Recall','F1',  'Part. Seq. Acc.','Tot. Seq. Acc.','Tag Flips','>1 Tag Seq. %','Cont. Seq. Len.','Seq. Len.','# Tokens']]
+
+    print(df.columns)
+    np.set_printoptions(precision =2,suppress = True)
+    print(np.round(df.to_numpy(), 2))
 
 
     with open('artifacts/article_perf_per_crisis.tex', 'w') as tf:
         tf.write(df.to_latex())
-    # The cols are precision, recall, f1, lp_label_perc, partially_correct_seq_perc, totally_correct_seq_perc, support
-
-
 
 
 
@@ -119,6 +122,7 @@ def get_article_performance(res_dict):
         perf_dict[k]['num_sequences'] = len(preds)
         perf_dict[k]['num_tokens'] = sum([a.sum() for a in preds])
         uniques = np.array([len(np.unique(a)) for a in labels])
+        # print([(len(p),len(l)) for p,l in zip(preds,labels) if len(p) != len(l)])
         partially_correct = [(p == l).any().astype(int) for p,l in zip(preds, labels)]
         totally_correct = [(p == l).all().astype(int) for p,l in zip(preds, labels)]
 
@@ -129,7 +133,10 @@ def get_article_performance(res_dict):
         # print(perf_dict[k]['totally_correct_seq_perc'])
         # print(perf_dict[k]['partially_correct_seq_perc'])
         cont_seq_nums = continuous_sequence_nums(labels)
-        perf_dict[k]['mean_cont_seq_len'] = np.array(cont_seq_nums).mean()
+        flip_cnts = flip_count(labels)
+        perf_dict[k]['flip_count'] = np.array(flip_cnts).mean()
+        perf_dict[k]['cont_seq_mean'] = np.array(cont_seq_nums).mean()
+        # print(perf_dict[k]['flip_count'])
         perf_dict[k]['all_labels'] = list(itertools.chain.from_iterable(labels))
         perf_dict[k]['all_preds'] = list(itertools.chain.from_iterable(preds))
         # print((np.array(perf_dict[k]['all_labels']) == 4).sum())
@@ -163,6 +170,22 @@ def continuous_sequence_nums(seqs):
         all_seqs = all_seqs + seq_lens
 
     return all_seqs
+
+
+def flip_count(seqs):
+    all_flips = []
+    for s in seqs:
+        flips = 0
+        seed_i = 0
+        seed = s[0]
+        for i in range(1,len(s)):
+            if s[i] != seed:
+                seed = s[i]
+                flips += 1
+                seed_i = i
+        all_flips.append(flips)
+
+    return all_flips
 
 
 

@@ -56,7 +56,11 @@ def create_validation_preds(tokenizer, model, data,
             labels = epoch[1]
 
             #Get tokenization
-            model_name = path.replace("/",'')
+            model_name = None
+            if "squeeze" in path:
+                model_name = path
+            else:
+                model_name = path.replace("/",'')
             max_len = tokenizer.max_model_input_sizes[model_name] if model_name != 'lstm' else 512
             tokenized = tokenizer(list(batch), padding=True, truncation=True,
                                   is_split_into_words=True, return_length=True, max_length=max_len)
@@ -169,8 +173,9 @@ if __name__ == "__main__":
     ROOT = '/extra/datalab_scratch0/showrobl/models/multilabel_new/'
     trials = 100
     num_batches = 30
-    paths = ['distilroberta-base','distilbert-base-uncased','lstm']
-    datas = ['test']
+    # paths = ['distilroberta-base','distilbert-base-uncased','lstm']
+    paths = ['squeezebert/squeezebert-uncased','albert-base-v2']
+    datas = ['dev','test']
     for d in datas:
         for p in paths:
             print(p, d)
